@@ -24,21 +24,43 @@ export class StreakService {
         try {
             if (!userId || !streakId || !date) return null;
             const userStreakRecord = await this.streakRepository.getValidateStreakRecord(userId, streakId);
-            if (userStreakRecord.length) {
-                const lastActiveDay = userStreakRecord[0].last_active_date;
+
+            if (userStreakRecord.length > 0) {
+                const record = userStreakRecord[0];
+                const lastActiveDay = record.last_active_date ? new Date(record.last_active_date) : null;
+
                 const currentDate = new Date();
-                const yesterday = new Date(currentDate.getTime() - 86_400_000);
+                const today = new Date(currentDate.toDateString());
+                const yesterday = new Date(today.getTime() - 86_400_000);
+
+                const isToday = lastActiveDay && lastActiveDay.toDateString() === today.toDateString();
                 const isYesterday = lastActiveDay && lastActiveDay.toDateString() === yesterday.toDateString();
                 if (isYesterday) {
-                    //increase streak by 1
-                    return;
-                } else if (userStreakRecord[0].)
+                    const newStreak = record.current_streak_days + 1;
+                    const newLongest = Math.max(newStreak, record.longest_streak_days);
+                    await this.streakRepository.updateStreak(streakId, {
+                        current_streak_days: newStreak,
+                        longest_streak_days: newLongest,
+                        last_active_date: today,
+                    });
+                } else if (!isToday) {
+                    // covers both "older than yesterday" and "lastActiveDay is null"
+                    await this.streakRepository.updateStreak(streakId, {
+                        current_streak_days: 1,
+                        longest_streak_days: record.longest_streak_days,
+                        last_active_date: today,
+                    });
+                }
 
+            } else {
+                await this.streakRepository.createUserStreak(userId, 1, 1, new Date().toISOString().split('T')[0], 0);
             }
+
+            return { message: 'Streak record processed successfully.' };
 
         } catch (error) {
             console.error('SourceError:- createUserStreak', error, 'userId', userId);
-            return [];
+            return null;
         }
     }
 }
