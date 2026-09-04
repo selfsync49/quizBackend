@@ -13,7 +13,7 @@ export class StreakController {
     }
 
     @Post()
-    async createUserStreak(@Body() body: { userId: string; date: string }) {
-        // return this.streakService.createUserStreak(body.userId, body.date);
+    async createUserStreak(@Body() body: { userId: string; streakId: string; date: string }) {
+        return this.streakService.createUserStreak(body.userId, body.streakId, body.date);
     }
 }

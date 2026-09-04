@@ -28,12 +28,11 @@ export class StreakService {
                 const lastActiveDay = userStreakRecord[0].last_active_date;
                 const currentDate = new Date();
                 const yesterday = new Date(currentDate.getTime() - 86_400_000);
-                const isYesterday =
-                    lastActiveDay instanceof Date &&
-                    lastActiveDay.toDateString() === yesterday.toDateString();
+                const isYesterday = lastActiveDay && lastActiveDay.toDateString() === yesterday.toDateString();
                 if (isYesterday) {
+                    //increase streak by 1
                     return;
-                }
+                } else if (userStreakRecord[0].)
 
             }
 

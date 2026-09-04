@@ -27,4 +27,25 @@ export class StreakRepository {
         }
 
     }
+
+    async getValidateStreakRecord(userId: string, streakId: string) {
+        try {
+            if (!userId || !streakId) throw 'User id and streak id are required.';
+            const streakRecord = await this.streakRecordRepo.find(
+                {
+                    where: {
+                        user_id: userId,
+                        id: streakId,
+                    }
+                }
+            )
+            if (streakRecord.length === 0) return [];
+            return streakRecord;
+
+        } catch (error) {
+            console.error('SourceError:- getValidateStreakRecord', error, 'userId', userId, 'streakId', streakId);
+            return [];
+        }
+    }
+
 }
