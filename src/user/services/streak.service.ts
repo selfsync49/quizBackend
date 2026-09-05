@@ -1,12 +1,15 @@
 import { Injectable } from '@nestjs/common';
-import { UserRepository } from '../repositories/user.repositories';
 import { StreakRepository } from '../repositories/streak.repositories';
-
+import { StreakCommand } from '../commands';
+import { StreakUtils } from '../utils';
+import { WalletCommand } from 'src/wallet/commands';
 @Injectable()
 export class StreakService {
     constructor(
-        private readonly userRepository: UserRepository,
         private readonly streakRepository: StreakRepository,
+        private readonly streakCommand: StreakCommand,
+        private readonly streakUtils: StreakUtils,
+        private readonly walletCommand: WalletCommand
     ) { }
     async getUserStreak(userId: string) {
         try {
@@ -20,40 +23,63 @@ export class StreakService {
         }
     }
 
-    async createUserStreak(userId: string, streakId: string, date: string) {
+    async createUserStreak(userId: string) {
         try {
-            if (!userId || !streakId || !date) return null;
-            const userStreakRecord = await this.streakRepository.getValidateStreakRecord(userId, streakId);
+            if (!userId) return null;
 
-            if (userStreakRecord.length > 0) {
+            const userStreakRecord = await this.streakRepository.getValidateStreakRecord(userId);
+            const toDateOnly = (d: Date | string): string => new Date(d).toISOString().split('T')[0];
+
+            if (userStreakRecord && userStreakRecord.length > 0) {
                 const record = userStreakRecord[0];
-                const lastActiveDay = record.last_active_date ? new Date(record.last_active_date) : null;
+                const streakId = record.id;
 
-                const currentDate = new Date();
-                const today = new Date(currentDate.toDateString());
-                const yesterday = new Date(today.getTime() - 86_400_000);
+                const lastActiveDayStr = record.last_active_date ? toDateOnly(record.last_active_date) : null;
+                const now = new Date();
+                const todayStr = toDateOnly(now);
+                const yesterdayStr = toDateOnly(new Date(now.getTime() - 86_400_000));
 
-                const isToday = lastActiveDay && lastActiveDay.toDateString() === today.toDateString();
-                const isYesterday = lastActiveDay && lastActiveDay.toDateString() === yesterday.toDateString();
+                const isToday = lastActiveDayStr === todayStr;
+                const isYesterday = lastActiveDayStr === yesterdayStr;
+
+                if (isToday) {
+                    // already checked in today — no-op
+                    return { message: 'Streak already recorded for today.' };
+                }
+
+                let currentStreak: number;
+                let newLongest: number;
+
                 if (isYesterday) {
-                    const newStreak = record.current_streak_days + 1;
-                    const newLongest = Math.max(newStreak, record.longest_streak_days);
-                    await this.streakRepository.updateStreak(streakId, {
-                        current_streak_days: newStreak,
-                        longest_streak_days: newLongest,
-                        last_active_date: today,
-                    });
-                } else if (!isToday) {
-                    // covers both "older than yesterday" and "lastActiveDay is null"
-                    await this.streakRepository.updateStreak(streakId, {
-                        current_streak_days: 1,
-                        longest_streak_days: record.longest_streak_days,
-                        last_active_date: today,
-                    });
+                    currentStreak = record.current_streak_days + 1;
+                    newLongest = Math.max(currentStreak, record.longest_streak_days);
+                } else {
+                    // streak broken — older than yesterday, or never active
+                    currentStreak = 1;
+                    newLongest = record.longest_streak_days;
+                }
+
+                const streakIncrement = this.streakUtils.calculateUserPointsForStreak(currentStreak);
+
+                await this.streakCommand.updateStreak(streakId, {
+                    current_streak_days: currentStreak,
+                    longest_streak_days: newLongest,
+                    last_active_date: new Date(todayStr),
+                    daily_bonus_sp: streakIncrement,
+                });
+
+                if (streakIncrement) {
+                    const updateStreakAmount = await this.walletCommand.updateUserBankBalance(
+                        userId,
+                        streakIncrement,
+                        'streak_bonus',
+                    );
+                    if (!updateStreakAmount) throw 'Could not update user wallet amount';
                 }
 
             } else {
-                await this.streakRepository.createUserStreak(userId, 1, 1, new Date().toISOString().split('T')[0], 0);
+                await this.streakCommand.createUserStreak(userId, 1, 1, new Date().toISOString().split('T')[0], 1);
+                await this.walletCommand.updateUserBankBalance(userId, 1, 'streak_bonus');
             }
 
             return { message: 'Streak record processed successfully.' };
@@ -64,16 +90,3 @@ export class StreakService {
         }
     }
 }
-
-// Check if user has already an ongoing streak 
-
-// For checking query the streak Record repo 
-
-// if already present check the last active date if it's yesterday date then increment the counter for streak
-
-// then create a record on streak activity log 
-
-// if not then create a new record for streak activity then create or replace record on streaRecords 
-
-// now after all this just increae the wallet amount by amount since the user logged in 
-

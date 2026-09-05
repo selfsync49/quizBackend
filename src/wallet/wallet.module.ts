@@ -4,12 +4,13 @@ import { SkillBankAccount, SkillPointTransaction, WithdrawalRequest } from './en
 import { WalletController } from './controllers/';
 import { WalletService } from './services/';
 import { WalletRepository } from './repositories';
+import { WalletCommand } from './commands';
 
 @Module({
-    imports:[TypeOrmModule.forFeature([SkillBankAccount,SkillPointTransaction,WithdrawalRequest])],
+    imports: [TypeOrmModule.forFeature([SkillBankAccount, SkillPointTransaction, WithdrawalRequest])],
     controllers: [WalletController],
-    providers:[WalletService, WalletRepository],
-    exports:[WalletService],
+    providers: [WalletService, WalletRepository, WalletCommand],
+    exports: [WalletService, WalletRepository, WalletCommand],
 })
-export class WalletModule {}
+export class WalletModule { }
 
