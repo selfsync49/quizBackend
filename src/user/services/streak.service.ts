@@ -27,63 +27,53 @@ export class StreakService {
         try {
             if (!userId) return null;
 
+            const toDateOnly = (d: Date | string): string => new Date(d).toISOString().slice(0, 10);
+            const today = new Date();
+            const todayStr = toDateOnly(today);
+            const yesterdayStr = toDateOnly(new Date(today.getTime() - 86_400_000));
+
             const userStreakRecord = await this.streakRepository.getValidateStreakRecord(userId);
-            const toDateOnly = (d: Date | string): string => new Date(d).toISOString().split('T')[0];
+            const record = userStreakRecord?.[0];
 
-            if (userStreakRecord && userStreakRecord.length > 0) {
-                const record = userStreakRecord[0];
-                const streakId = record.id;
-
-                const lastActiveDayStr = record.last_active_date ? toDateOnly(record.last_active_date) : null;
-                const now = new Date();
-                const todayStr = toDateOnly(now);
-                const yesterdayStr = toDateOnly(new Date(now.getTime() - 86_400_000));
-
-                const isToday = lastActiveDayStr === todayStr;
-                const isYesterday = lastActiveDayStr === yesterdayStr;
-
-                if (isToday) {
-                    // already checked in today — no-op
-                    return { message: 'Streak already recorded for today.' };
-                }
-
-                let currentStreak: number;
-                let newLongest: number;
-
-                if (isYesterday) {
-                    currentStreak = record.current_streak_days + 1;
-                    newLongest = Math.max(currentStreak, record.longest_streak_days);
-                } else {
-                    // streak broken — older than yesterday, or never active
-                    currentStreak = 1;
-                    newLongest = record.longest_streak_days;
-                }
-
-                const streakIncrement = this.streakUtils.calculateUserPointsForStreak(currentStreak);
-
-                await this.streakCommand.updateStreak(streakId, {
-                    current_streak_days: currentStreak,
-                    longest_streak_days: newLongest,
-                    last_active_date: new Date(todayStr),
-                    daily_bonus_sp: streakIncrement,
-                });
-
-                if (streakIncrement) {
-                    const updateStreakAmount = await this.walletCommand.updateUserBankBalance(
-                        userId,
-                        streakIncrement,
-                        'streak_bonus',
-                    );
-                    if (!updateStreakAmount) throw 'Could not update user wallet amount';
-                }
-
-            } else {
-                await this.streakCommand.createUserStreak(userId, 1, 1, new Date().toISOString().split('T')[0], 1);
+            if (!record) {
+                await this.streakCommand.createUserStreak(userId, 1, 1, todayStr, 1);
                 await this.walletCommand.updateUserBankBalance(userId, 1, 'streak_bonus');
+                return { message: 'Streak record processed successfully.' };
+            }
+
+            const lastActiveDayStr = record.last_active_date ? toDateOnly(record.last_active_date) : null;
+
+            if (lastActiveDayStr === todayStr) {
+                return { message: 'Streak already recorded for today.' };
+            }
+
+            const isYesterday = lastActiveDayStr === yesterdayStr;
+            const currentStreakDays = isYesterday ? record.current_streak_days + 1 : 1;
+            const longestStreakDays = isYesterday
+                ? Math.max(currentStreakDays, record.longest_streak_days)
+                : record.longest_streak_days;
+            const streakIncrement = this.streakUtils.calculateUserPointsForStreak(currentStreakDays);
+
+            const updatedStreak = await this.streakCommand.updateStreak(record.id, {
+                current_streak_days: currentStreakDays,
+                longest_streak_days: longestStreakDays,
+                last_active_date: new Date(todayStr),
+                daily_bonus_sp: streakIncrement,
+            });
+
+            if (!updatedStreak) return null;
+
+            if (streakIncrement > 0) {
+                const updatedWallet = await this.walletCommand.updateUserBankBalance(
+                    userId,
+                    streakIncrement,
+                    'streak_bonus',
+                );
+
+                if (!updatedWallet) throw new Error('Could not update user wallet amount');
             }
 
             return { message: 'Streak record processed successfully.' };
-
         } catch (error) {
             console.error('SourceError:- createUserStreak', error, 'userId', userId);
             return null;
