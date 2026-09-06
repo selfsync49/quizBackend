@@ -6,12 +6,12 @@ import {
 } from 'typeorm';
 
 export enum SpSourceType {
-  // TODO: fill in actual values from your `sp_source_type` Postgres enum
-  QUIZ_COMPLETION = 'quiz_completion',
-  REFERRAL = 'referral',
+  QUIZ_ATTEMPT = 'quiz_attempt',
+  LEADERBOARD_PRIZE = 'leaderboard_prize',
+  STREAK_BONUS = 'streak_bonus',
+  REFERRAL_REWARD = 'referral_reward',
   WITHDRAWAL = 'withdrawal',
   ADMIN_ADJUSTMENT = 'admin_adjustment',
-  STREAK_BONUS = 'streak_bonus',
 }
 
 @Entity('skill_point_transactions')

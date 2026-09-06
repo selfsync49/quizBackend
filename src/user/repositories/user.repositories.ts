@@ -22,7 +22,6 @@ export class UserRepository {
                 u.email,
                 sr.current_streak_days AS current_streak,
                 sr.longest_streak_days AS longest_streak,
-                sr.daily_bonus_sp,
                 sr.last_active_date
                 FROM users u
                 LEFT JOIN streak_records sr ON u.id = sr.user_id

@@ -9,10 +9,11 @@ import { StreakRepository } from './repositories/streak.repositories';
 import { WalletModule } from 'src/wallet/wallet.module';
 import { StreakCommand } from './commands';
 import { StreakUtils } from './utils';
+import { UserController } from './controllers';
 
 @Module({
     imports: [WalletModule, TypeOrmModule.forFeature([User, StreakRecord, StreakActivityLog])],
-    controllers: [StreakController],
+    controllers: [StreakController, UserController],
     providers: [UserService, UserRepository, StreakService, StreakRepository, StreakCommand, StreakUtils],
     exports: [UserService, StreakService],
 })

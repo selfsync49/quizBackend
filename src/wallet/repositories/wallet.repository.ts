@@ -58,15 +58,12 @@ export class WalletRepository {
         const rows = await this.bankRepo.query(
             `
             SELECT
-            w.id AS wallet_id,
             w.user_id,
             w.balance_sp,
             w.total_earned_sp,
             w.total_withdrawn_sp,
-            w.created_at AS wallet_created_at,
             t.id AS trnx_id,
             t.source_type,
-            t.source_id,
             t.amount_sp,
             t.balance_after_sp,
             t.note,
