@@ -16,4 +16,9 @@ export class StreakController {
     async createUserStreak(@Body() body: { userId: string; }) {
         return this.streakService.createUserStreak(body.userId);
     }
+
+    @Get('logs/:userId')
+    async getUserStreakWithLogs(@Param('userId') userId: string) {
+        return this.streakService.getUserStreakWithLogs(userId);
+    }
 }

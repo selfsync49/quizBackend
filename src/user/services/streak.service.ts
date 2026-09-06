@@ -23,6 +23,38 @@ export class StreakService {
         }
     }
 
+
+    async getUserStreakWithLogs(userId: string) {
+        try {
+            if (!userId) return [];
+            const streakDetailsWithLogs = await this.streakRepository.getUserStreakwithLogs(userId);
+            if (!streakDetailsWithLogs || streakDetailsWithLogs.length === 0) return [];
+            const response = {};
+            const streakDetails = {
+                "user_id":streakDetailsWithLogs[0].sr_user_id,
+                "current_streak_days":streakDetailsWithLogs[0].sr_current_streak_days,
+                "longest_streak_days":streakDetailsWithLogs[0].sr_longest_streak_days,
+                "last_active_date":streakDetailsWithLogs[0].sr_last_active_date
+            }
+
+            const activityLogs = streakDetailsWithLogs.map(log => {
+                return {
+                    "activity_date": log.sal_activity_date,
+                    "sp_earned": log.sal_sp_earned,
+                    "streak_day_number": log.sal_streak_day_number
+                }
+            })
+
+            return {
+                "streakDetails": streakDetails,
+                "activityLogs": activityLogs
+            };
+        } catch (error) {
+            console.error('SourceError:- getUserStreakWithLogs', error, 'userId', userId);
+            return [];
+        }
+    }
+
     async createUserStreak(userId: string) {
         try {
             if (!userId) return null;

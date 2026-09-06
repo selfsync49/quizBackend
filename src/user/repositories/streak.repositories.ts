@@ -5,7 +5,7 @@ import { Repository } from "typeorm";
 export class StreakRepository {
     constructor(
         @InjectRepository(StreakRecord) private readonly streakRecordRepo: Repository<StreakRecord>,
-    ) { }
+        @InjectRepository(StreakActivityLog) private readonly streakActivityRepo: Repository<StreakActivityLog>,) { }
 
     async getUserStreak(userId: string) {
         try {
@@ -25,6 +25,27 @@ export class StreakRepository {
             return [];
         }
 
+    }
+
+    async getUserStreakwithLogs(userId: string) {
+        try {
+            if (!userId) throw 'User id is required.';
+            const streakRecord = await this.streakRecordRepo
+                .createQueryBuilder('sr')
+                .leftJoinAndSelect(
+                    'streak_activity_logs',
+                    'sal',
+                    'sal.user_id = sr.user_id'
+                )
+                .where('sr.user_id = :userId', { userId })
+                .orderBy('sal.activity_date', 'DESC')
+                .getRawMany();
+            if (streakRecord.length === 0) return [];
+            return streakRecord;
+        } catch (error) {
+            console.error('SourceError:- getUserStreakwithLogs', error, 'userId', userId);
+            return [];
+        }
     }
 
     async getValidateStreakRecord(userId: string) {
