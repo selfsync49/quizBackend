@@ -58,3 +58,11 @@ export type SkillPointTransaction = {
 export type WithdrawalRequest = {
 
 }
+
+export type WalletTransactionSourceType =
+  | 'quiz_attempt'
+  | 'leaderboard_prize'
+  | 'streak_bonus'
+  | 'referral_reward'
+  | 'withdrawal'
+  | 'admin_adjustment';
