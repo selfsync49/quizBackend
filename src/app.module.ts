@@ -10,6 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { WalletModule } from './wallet/wallet.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { RedisModule } from './shared-svc';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -37,6 +38,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     SubscriptionsModule,
     WalletModule,
     DashboardModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],
