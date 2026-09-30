@@ -3,11 +3,14 @@ import { UserService } from 'src/user/services';
 import { WalletService } from 'src/wallet/services';
 import { DashboardRepository } from '../repositories/dashboard.repositories';
 import { RedisService } from 'src/shared-svc';
+import { DashboardCommand } from '../command';
+import { UserTestRecordDto } from '../dtos';
 @Injectable()
 export class DashboardService {
     constructor(
         private readonly walletService: WalletService,
         private readonly dashboardRepository: DashboardRepository,
+        private readonly dashboardCommand: DashboardCommand,
         private readonly userSerivce: UserService,
         private readonly redisService: RedisService
     ) { }
@@ -111,6 +114,52 @@ export class DashboardService {
                 status: false,
                 message: error || 'Something went wrong while fetching subject tests.'
             }
+        }
+    }
+
+    async getTestQuestions(testId: string) {
+        try {
+            const cachedTestQuestions = await this.redisService.get(`test-questions:${testId}`);
+            if (cachedTestQuestions) {
+                return {
+                    status: true,
+                    data: JSON.parse(cachedTestQuestions)
+                }
+            }
+            const testQuestions = await this.dashboardRepository.getTestQuestionsByTestId(testId);
+            if (!testQuestions.length) throw 'No test questions found.';
+            await this.redisService.set(`test-questions:${testId}`, JSON.stringify(testQuestions), 3600);
+            return {
+                status: true,
+                data: testQuestions
+            }
+        } catch (error) {
+            console.error('SourceError:- getTestQuestions', error, 'testId', testId);
+            return {
+                status: false,
+                message: error || 'Something went wrong while fetching test questions.'
+            }
+        }
+    }
+
+    async createUserTestRecord(testId: string, userId: string) {
+        try {
+            const result = await this.dashboardCommand.createUserTestRecord(testId, userId);
+            if (!result) throw 'Something went wrong while starting test. Please try again later.';
+        } catch (error) {
+            console.error('SourceError:- createUserTestRecord', error, 'testId', testId, 'userId', userId);
+            throw error;
+        }
+    }
+
+    async updateUserTestRecord(testId: string, body: UserTestRecordDto) {
+        try{
+            const {userId, userTestId, questionId, selectedOptionId} = body;
+            const result = await this.dashboardCommand.updateUserTestRecord(testId, userId, userTestId, questionId, selectedOptionId);
+            if (!result) throw 'Something went wrong while updating test record. Please try again later.';
+        } catch (error) {
+            console.error('SourceError:- updateUserTestRecord', error, 'testId', testId, 'body', body);
+            throw error;
         }
     }
 }
