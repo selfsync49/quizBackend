@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { DashboardService } from '../services/dashboard.services';
-import type { UserTestRecordDto } from '../dtos/dashboard.dtos';
+import type { UserSbumittedTestRecordDto, UserTestRecordDto } from '../dtos/dashboard.dtos';
 @Controller('dashboard')
 export class DashboardController {
     constructor(
@@ -42,5 +42,13 @@ export class DashboardController {
         @Body() body: UserTestRecordDto
     ) {
         return await this.dashboardService.updateUserTestRecord(testId, body);
+    }
+
+    @Patch('submit-test/:testId')
+    async submitUserTest(
+        @Param('testId') testId: string, 
+        @Body() body: UserSbumittedTestRecordDto
+    ) {
+        return await this.dashboardService.submitUserTest(testId, body);
     }
 }

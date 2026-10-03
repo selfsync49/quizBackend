@@ -4,7 +4,7 @@ import { WalletService } from 'src/wallet/services';
 import { DashboardRepository } from '../repositories/dashboard.repositories';
 import { RedisService } from 'src/shared-svc';
 import { DashboardCommand } from '../command';
-import { UserTestRecordDto } from '../dtos';
+import { UserSbumittedTestRecordDto, UserTestRecordDto } from '../dtos';
 @Injectable()
 export class DashboardService {
     constructor(
@@ -153,12 +153,50 @@ export class DashboardService {
     }
 
     async updateUserTestRecord(testId: string, body: UserTestRecordDto) {
-        try{
-            const {userId, userTestId, questionId, selectedOptionId} = body;
+        try {
+            const { userId, userTestId, questionId, selectedOptionId } = body;
             const result = await this.dashboardCommand.updateUserTestRecord(testId, userId, userTestId, questionId, selectedOptionId);
             if (!result) throw 'Something went wrong while updating test record. Please try again later.';
         } catch (error) {
             console.error('SourceError:- updateUserTestRecord', error, 'testId', testId, 'body', body);
+            throw error;
+        }
+    }
+
+    async submitUserTest(testId: string, body: UserSbumittedTestRecordDto) {
+        try {
+            const userTestAnswersReport = await this.dashboardRepository.getUserTestAnswers(body.userId, body.userTestId);
+
+            if (!userTestAnswersReport) throw 'Test Record not found. Please try again with correct details.';
+            if(userTestAnswersReport.is_submitted) throw 'Test has already been submitted.'
+
+            const mockTestRewardPerQuestion = parseInt(process.env.MOCK_TEST_SP_REWARD_PER_QUESTION || '5');
+            const totalSPToReward = userTestAnswersReport?.correct_answers * mockTestRewardPerQuestion;
+            const scoreAccuracy = userTestAnswersReport?.correct_answers > 0 ?
+                (userTestAnswersReport?.correct_answers / userTestAnswersReport?.total_questions_attempted) * 100
+                : 0;
+            const completedAt = new Date();
+            const startedAt = new Date(userTestAnswersReport.started_at);
+            const timeTakenMin = Math.floor(Math.floor((completedAt.getTime() - startedAt.getTime()) / 1000)) / 60;
+
+            const updateResult = await this.dashboardCommand.submitUserTest(
+                testId, body.userId, body.userTestId, totalSPToReward, scoreAccuracy, timeTakenMin, completedAt
+            )
+            if(!updateResult) {
+                throw 'Something went wrong while submitting test. Please try again later.';
+            }
+
+            const walletUpdateResult = await this.walletService.updateUserWallet(body.userId, totalSPToReward, 'mock_test_reward');
+            if(!walletUpdateResult.status) {
+                throw 'Something went wrong while updating user wallet. Please contact us.';
+            }
+
+            return {
+                status: true, 
+                message: 'Test submitted successfully.'
+            }
+        } catch (error) {
+            console.error('SourceError:- submitUserTest', error, 'testId', testId, 'body', body);
             throw error;
         }
     }
