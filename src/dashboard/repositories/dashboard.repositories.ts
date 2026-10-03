@@ -1,6 +1,6 @@
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { MockExamSubject, MockTestCategory, SubjectTest, TestQuestionOption } from "../entities";
+import { MockExamSubject, MockTestCategory, SubjectTest, TestQuestionOption, UserTest, UserTestAnswer } from "../entities";
 
 export class DashboardRepository {
     constructor(
@@ -8,6 +8,8 @@ export class DashboardRepository {
         @InjectRepository(MockTestCategory) private readonly mockTestCategoryRepo: Repository<MockTestCategory>,
         @InjectRepository(SubjectTest) private readonly subjectTestRepo: Repository<SubjectTest>,
         @InjectRepository(TestQuestionOption) private readonly testQuestionOptionRepo: Repository<TestQuestionOption>,
+        @InjectRepository(UserTest) private readonly userTestRepo: Repository<UserTest>,
+        @InjectRepository(UserTestAnswer) private readonly userTestAnswerRepo: Repository<UserTestAnswer>,
     ) { }
 
     async getMockTestCategories() {
@@ -107,6 +109,36 @@ export class DashboardRepository {
         } catch (error) {
             console.error('SourceError:- checkCorrectAnswerByQuestionId', error, 'questionId', questionId, 'selectedOptionId', selectedOptionId);
             return false;
+        }
+    }
+
+    async checkIsQuestionAlreadyAnswered(userTestId: string, questionId: string) {
+        try {
+            const result = await this.userTestAnswerRepo.findOne({
+                where: {
+                    user_test_id: userTestId,
+                    question_id: questionId
+                }
+            })
+            return !!result;
+        } catch (error) {
+            console.error('SourceError:- checkIsQuestionAlreadyAnswered', error, 'userTestId', userTestId, 'questionId', questionId);
+            return false;
+        }
+    }
+
+    async getUserTestAnswers(userId: string, userTestId: string) {
+        try {
+            const userAnswers = await this.userTestRepo.findOne({
+                where: {
+                    user_id: userId,
+                    id: userTestId
+                }
+            })
+            return userAnswers;
+        } catch (error) {
+            console.error('SourceError:- getUserTestAnswers', error, 'userId', userId, 'userTestId', userTestId);
+            return null;
         }
     }
 }

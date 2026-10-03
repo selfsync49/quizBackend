@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { WalletRepository } from '../repositories';
 import { walletInfoResponseType, SkillBankAccount, SkillPointTransaction, userTransactions, walletResponse } from '../interface';
+import { WalletCommand } from '../commands';
 
 @Injectable()
 export class WalletService {
     constructor(
         private readonly walletRepository: WalletRepository,
+        private readonly walletCommand: WalletCommand
     ) { }
     async getUserWalletInfo(userId: string, limit: number, page: number): Promise<walletInfoResponseType> {
         try {
@@ -23,6 +25,7 @@ export class WalletService {
                 total_earned_sp: userWalletInfoandTransaction[0].total_earned_sp,
                 total_withdrawn_sp: userWalletInfoandTransaction[0].total_withdrawn_sp,
                 created_at: userWalletInfoandTransaction[0].wallet_created_at,
+                id: userWalletInfoandTransaction[0].id
             }];
             const transactions: SkillPointTransaction[] = userWalletInfoandTransaction
                 .filter((r) => r.trnx_id !== null)
@@ -92,5 +95,17 @@ export class WalletService {
             return [];
         }
 
+    }
+
+    async updateUserWallet(userId: string, amount: number, sourceType: string){
+        try {
+            if (!userId || !amount || !sourceType) throw 'Required fields are missing.';
+            const updateResult = await this.walletCommand.updateUserBankBalance(userId, amount, sourceType);
+            if (!updateResult) throw 'Failed to update user wallet.';
+            return { status: true, message: 'User wallet updated successfully.' }
+        } catch(error) {
+            console.error('SourceError:- updateUserWallet', error, 'userId', userId, 'amount', amount, 'sourceType', sourceType);
+            return { status: false, message: error || 'Something went wrong while performing operation.' }
+        }
     }
 }

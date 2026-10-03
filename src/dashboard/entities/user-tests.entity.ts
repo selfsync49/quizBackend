@@ -48,4 +48,7 @@ export class UserTest {
 
   @Column({ type: 'timestamptz', nullable: true })
   completed_at: Date | null;
+
+  @Column({ type: 'boolean', default: false })
+  is_submitted: boolean;
 }

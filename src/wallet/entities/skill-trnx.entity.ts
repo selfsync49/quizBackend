@@ -12,6 +12,7 @@ export enum SpSourceType {
   REFERRAL_REWARD = 'referral_reward',
   WITHDRAWAL = 'withdrawal',
   ADMIN_ADJUSTMENT = 'admin_adjustment',
+  mock_test_reward = 'mock_test_reward',
 }
 
 @Entity('skill_point_transactions')
