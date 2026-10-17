@@ -21,8 +21,8 @@ export class DashboardCommand {
                 user_id: userId,
                 status: UserTestStatus.IN_PROGRESS,
             });
-            await this.userTestRepo.save(result);
-            return true;
+            const saved = await this.userTestRepo.save(result);
+            return saved;
         } catch (error) {
             console.error('SourceError:- createUserTestRecord', error, 'testId', testId, 'userId', userId);
             return false;

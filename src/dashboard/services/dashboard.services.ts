@@ -146,6 +146,10 @@ export class DashboardService {
         try {
             const result = await this.dashboardCommand.createUserTestRecord(testId, userId);
             if (!result) throw 'Something went wrong while starting test. Please try again later.';
+            return {
+                status: true,
+                data: result,
+            };
         } catch (error) {
             console.error('SourceError:- createUserTestRecord', error, 'testId', testId, 'userId', userId);
             throw error;
