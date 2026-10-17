@@ -10,10 +10,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { WalletModule } from './wallet/wallet.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { SupabaseModule } from './supabase/supabase.module';
 @Module({
   imports: [
+    SupabaseModule,
     ConfigModule.forRoot({
-      envFilePath: '../.env',
+      envFilePath: ['.env', '../.env'],
       isGlobal: true,
     }),
     TypeOrmModule.forRootAsync({

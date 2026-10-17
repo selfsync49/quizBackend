@@ -60,10 +60,17 @@ export class StreakCommand {
                 throw 'Could not update user streak.' + streakId;
             }
 
-            // create entry into activity log
+            // create entry into activity log in Indian Standard Time
+            const istDateStr = new Intl.DateTimeFormat('en-CA', {
+                timeZone: 'Asia/Kolkata',
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+            }).format(updatedRecord.last_active_date ? new Date(updatedRecord.last_active_date) : new Date());
+
             await this.updateStreakActivityLogs(
                 updatedRecord.user_id,
-                updatedRecord.last_active_date ? new Date(updatedRecord.last_active_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+                istDateStr,
                 updates.daily_bonus_sp ?? 0,
                 updates.current_streak_days ?? null,
             );

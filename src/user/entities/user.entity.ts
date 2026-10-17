@@ -17,10 +17,25 @@ export class User {
   @Column({ type: 'varchar', unique: true, nullable: true })
   phone: string;
 
+  @Column({ type: 'varchar', unique: true, nullable: true })
+  username: string;
+
   @Column({ type: 'varchar' })
   full_name: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
+  bio: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  target_exam: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  qualification: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  preferred_language: string;
+
+  @Column({ type: 'text', nullable: true })
   password_hash: string;
 
   @Column({ type: 'date', nullable: true })

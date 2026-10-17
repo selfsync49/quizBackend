@@ -1,5 +1,6 @@
 import { Controller, Post, Get, Body, Param } from '@nestjs/common';
-import { AuthService, GoogleAuthDto } from '../services/auth.service';
+import { AuthService } from '../services/auth.service';
+import type { GoogleAuthDto } from '../services/auth.service';
 
 @Controller('auth')
 export class AuthController {

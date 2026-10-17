@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { StreakRecord, StreakActivityLog, User } from './entities/';
 import { UserService } from './services/user.service';
+import { S3Service } from './services/s3.service';
 import { UserRepository } from './repositories';
 import { StreakController } from './controllers/streak.controller';
 import { StreakService } from './services/streak.service';
@@ -14,7 +15,7 @@ import { UserController } from './controllers';
 @Module({
     imports: [WalletModule, TypeOrmModule.forFeature([User, StreakRecord, StreakActivityLog])],
     controllers: [StreakController, UserController],
-    providers: [UserService, UserRepository, StreakService, StreakRepository, StreakCommand, StreakUtils],
-    exports: [UserService, StreakService],
+    providers: [UserService, UserRepository, StreakService, StreakRepository, StreakCommand, StreakUtils, S3Service],
+    exports: [UserService, StreakService, UserRepository, S3Service],
 })
 export class UserModule { }
