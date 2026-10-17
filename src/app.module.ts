@@ -11,6 +11,9 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { WalletModule } from './wallet/wallet.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { SupabaseModule } from './supabase/supabase.module';
+import { CommunityModule } from './community/community.module';
+import { RedisModule } from './shared-svc';
+import { S3Module } from './shared-svc/s3';
 @Module({
   imports: [
     SupabaseModule,
@@ -39,6 +42,9 @@ import { SupabaseModule } from './supabase/supabase.module';
     SubscriptionsModule,
     WalletModule,
     DashboardModule,
+    RedisModule,
+    S3Module,
+    CommunityModule
   ],
   controllers: [AppController],
   providers: [AppService],
