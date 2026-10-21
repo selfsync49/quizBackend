@@ -1,144 +1,125 @@
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { MockExamSubject, MockTestCategory, SubjectTest, TestQuestionOption, UserTest, UserTestAnswer } from "../entities";
+import { Exam, ExamSubject, Subject, Test, Topic, TestScope, TestQuestion } from '../entities/index';
 
 export class DashboardRepository {
     constructor(
-        @InjectRepository(MockExamSubject) private readonly mockExamSubjectRepo: Repository<MockExamSubject>,
-        @InjectRepository(MockTestCategory) private readonly mockTestCategoryRepo: Repository<MockTestCategory>,
-        @InjectRepository(SubjectTest) private readonly subjectTestRepo: Repository<SubjectTest>,
-        @InjectRepository(TestQuestionOption) private readonly testQuestionOptionRepo: Repository<TestQuestionOption>,
-        @InjectRepository(UserTest) private readonly userTestRepo: Repository<UserTest>,
-        @InjectRepository(UserTestAnswer) private readonly userTestAnswerRepo: Repository<UserTestAnswer>,
+        @InjectRepository(Exam) private readonly examRepo: Repository<Exam>,
+        @InjectRepository(ExamSubject) private readonly examSubjectRepo: Repository<ExamSubject>,
+        @InjectRepository(Subject) private readonly subjectRepo: Repository<Subject>,
+        @InjectRepository(Topic) private readonly topicRepo: Repository<Topic>,
+        @InjectRepository(Test) private readonly testRepo: Repository<Test>,
+        @InjectRepository(TestQuestion) private readonly testQuestionRepo: Repository<TestQuestion>
     ) { }
 
-    async getMockTestCategories() {
+    async getMockExamsList() {
         try {
-            const mockTests = await this.mockTestCategoryRepo.find();
+            const mockTests = await this.examRepo.find();
             return mockTests;
         } catch (error) {
-            console.error('SourceError:- getMockTests', error);
+            console.error('SourceError:- getMockExamsList', error);
             return [];
         }
     }
 
-    async getMockTestSubjectsByCategoryId(categoryId: string) {
+    async getExamsSubjects(examId: string) {
         try {
-            if (!categoryId) throw 'Category id is required.';
-            const mockTestSubjects = await this.mockExamSubjectRepo.find(
-                {
-                    where: {
-                        category_id: categoryId
-                    }
-                }
-            )
-            return mockTestSubjects;
-        } catch (error) {
-            console.error('SourceError:- getMockTestSubjectsByCategoryId', error, 'categoryId', categoryId);
-            return [];
-        }
-    }
+            if (!examId) throw 'Exam id is required.';
 
-    async getSubjectTestsBySubjectId(subjectId: string) {
-        try {
-            if (!subjectId) throw 'Subject id is required.';
-            const subjectTests = await this.subjectTestRepo.find(
-                {
-                    where: {
-                        subject_id: subjectId
-                    }
-                }
-            )
-            return subjectTests;
-        } catch (error) {
-            console.error('SourceError:- getSubjectTestsBySubjectId', error, 'subjectId', subjectId);
-            return [];
-        }
-    }
-
-    async getTestQuestionsByTestId(testId: string) {
-        try {
-            if (!testId) throw 'Test id is required.';
-            const testQuestions = await this.subjectTestRepo.query(
+            const subjects = await this.examSubjectRepo.query(
                 `
-                        SELECT
-                            tq.id,
-                            tq.body,
-                            tq.question_type,
-                            tq.sp_correct,
-                            tq.sp_wrong,
-                            tq.order_index,
-                            COALESCE(
-                                json_agg(
-                                    json_build_object(
-                                        'id', tqo.id,
-                                        'body', tqo.body,
-                                        'order_index', tqo.order_index
-                                    )
-                                    ORDER BY tqo.order_index
-                                ) FILTER (WHERE tqo.id IS NOT NULL),
-                                '[]'
-                            ) AS options
-                        FROM test_questions tq
-                        LEFT JOIN test_question_options tqo ON tqo.question_id = tq.id
-                        WHERE tq.test_id = $1
-                        GROUP BY tq.id
-                        ORDER BY tq.order_index;
-                        `,
-                [testId],
+                    SELECT
+                        s.id,
+                        s.name,
+                        s.description,
+                        s.icon_url,
+                        es.display_order,
+                        COUNT(t.id)::int AS test_count
+                    FROM exam_subjects es
+                    INNER JOIN subjects s ON s.id = es.subject_id
+                    LEFT JOIN tests t
+                        ON t.exam_id = es.exam_id
+                    AND t.subject_id = es.subject_id
+                    AND t.scope = 'subject'
+                    AND t.is_active = true
+                    WHERE es.exam_id = $1
+                    GROUP BY s.id, es.display_order
+                    ORDER BY es.display_order ASC NULLS LAST, s.name ASC
+            `,
+                [examId],
             );
 
-            return testQuestions;
+            return subjects;
 
         } catch (error) {
-            console.error('SourceError:- getTestQuestionsByTestId', error, 'testId', testId);
+            console.error('SourceError:- getExamsSubjects', error, 'examId', examId);
             return [];
         }
     }
 
-    async checkCorrectAnswerByQuestionId(questionId: string, selectedOptionId: string) {
+    async getSubjectTopic(subjectId: string) {
         try {
-            const result = await this.testQuestionOptionRepo.findOne({
-                where: {
-                    id: selectedOptionId,
-                    question_id: questionId,
-                    is_correct: true,
-                },
-            });
-            return !!result;
+            const topics = this.topicRepo.find({
+                where: { subject_id: subjectId },
+                order: { name: 'ASC' },
+            })
+
+            return topics;
         } catch (error) {
-            console.error('SourceError:- checkCorrectAnswerByQuestionId', error, 'questionId', questionId, 'selectedOptionId', selectedOptionId);
-            return false;
+            console.error('SourceError:- getSubjectTopic', error, 'subjectId', subjectId);
+            return [];
         }
     }
 
-    async checkIsQuestionAlreadyAnswered(userTestId: string, questionId: string) {
+    async getTopicTests(topicId: string) {
         try {
-            const result = await this.userTestAnswerRepo.findOne({
-                where: {
-                    user_test_id: userTestId,
-                    question_id: questionId
-                }
+            const topicTests = this.testRepo.find({
+                where: { topic_id: topicId, scope: TestScope.TOPIC }
             })
-            return !!result;
+            return topicTests
         } catch (error) {
-            console.error('SourceError:- checkIsQuestionAlreadyAnswered', error, 'userTestId', userTestId, 'questionId', questionId);
-            return false;
+            console.error('SourceError:- getTopicTests', error, 'topicId', topicId);
+            return [];
         }
     }
 
-    async getUserTestAnswers(userId: string, userTestId: string) {
+    async getTestDetails(testId: string) {
         try {
-            const userAnswers = await this.userTestRepo.findOne({
-                where: {
-                    user_id: userId,
-                    id: userTestId
-                }
-            })
-            return userAnswers;
+            const testDetails = this.testQuestionRepo.query(
+                `
+                select
+                    tq.test_id,
+                    tq.order_index,
+                    qb.id as question_id,
+                    qb.question_text,
+                    qb.subject,
+                    qb.topic,
+                    qb.difficulty,
+                    coalesce(
+                        json_agg(
+                        json_build_object(
+                            'id', o.id,
+                            'option_text', o.option_text,
+                            'order_index', o.order_index,
+                            'is_correct', o.is_correct
+                        )
+                        order by o.order_index
+                        ) filter (where o.id is not null),
+                        '[]'
+                    ) as options
+                    from test_questions tq
+                    inner join question_bank qb on qb.id = tq.question_id
+                    left join question_bank_options o on o.question_id = qb.id
+                    where tq.test_id = $1
+                    group by tq.test_id, tq.order_index, qb.id
+                    order by tq.order_index;
+                `, [testId],
+            );
+
+            return testDetails;
         } catch (error) {
-            console.error('SourceError:- getUserTestAnswers', error, 'userId', userId, 'userTestId', userTestId);
-            return null;
+            console.error('SourceError:- getTestDetails', error, 'testId', testId);
+            return [];
         }
     }
 }

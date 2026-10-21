@@ -1,6 +1,9 @@
-export * from './mock-exam-subject.entity';
-export * from './mock-test-category.entity';
-export * from './subject-test.entity';
-export * from './user-tests.entity';
-export * from './user-test-answers.entity';
-export * from './test-ques-options.entity';
+// entities/index.ts
+export * from './exam.entity';
+export * from './subject.entity';
+export * from './exam-subject.entity';
+export * from './topic.entity';
+export * from './test.entity';
+export * from './test-question.entity';
+export * from './user-test.entity';
+export * from './user-test-answer.entity';
