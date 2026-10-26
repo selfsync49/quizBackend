@@ -11,44 +11,64 @@ export class DashboardController {
     async getUserDashboardInfo(@Param('userId') userId: string) {
         return await this.dashboardService.getUserDashboardInfo(userId);
     }
-    @Get('mock-tests/categories')
+    @Get('exams/list')
     async getMockTestCategories() {
-        return await this.dashboardService.getMockTestCategories();
+        return await this.dashboardService.getExams();
     }
 
-    @Get('mock-tests/:categoryId')
-    async getMockTestSubjects(@Param('categoryId') categoryId: string) {
-        return await this.dashboardService.getMockTestSubjects(categoryId);
+    @Get('exams/subjects/:examId')
+    async getExamSubjects(@Param('examId') examId: string) {
+        return await this.dashboardService.getExamSubjects(examId);
     }
 
-    @Get('subject-tests/:subjectId')
-    async getSubjectTests(@Param('subjectId') subjectId: string) {
-        return await this.dashboardService.getSubjectTests(subjectId);
+    @Get('subject/topics/:subjectId')
+    async getSubjectsTopic(@Param('subjectId') subjectId: string) {
+        return await this.dashboardService.getSubjectsTopic(subjectId);
     }
 
-    @Get('test-questions/:testId')
-    async getTestQuestions(@Param('testId')TestId: string) {
-        return await this.dashboardService.getTestQuestions(TestId);
+    @Get('topic-tests/:topicId')
+    async getTopicTests(@Param('topicId') topicId: string) {
+        return await this.dashboardService.getTopicTests(topicId);
     }
 
-    @Post('create-test/:testId/user/:userId')
-    async createUserTestRecord(@Param('testId') testId: string, @Param('userId') userId: string) {
-        return await this.dashboardService.createUserTestRecord(testId, userId);
+    @Get('tests/:testId')
+    async getTestDetails(@Param('testId') testId: string) {
+        return await this.dashboardService.getTestDetails(testId);
     }
 
-    @Patch('update-test/:testId')
-    async updateUserTestRecord(
-        @Param('testId') testId: string, 
-        @Body() body: UserTestRecordDto
-    ) {
-        return await this.dashboardService.updateUserTestRecord(testId, body);
-    }
+    // @Get('mock-tests/:categoryId')
+    // async getMockTestSubjects(@Param('categoryId') categoryId: string) {
+    //     return await this.dashboardService.getMockTestSubjects(categoryId);
+    // }
 
-    @Patch('submit-test/:testId')
-    async submitUserTest(
-        @Param('testId') testId: string, 
-        @Body() body: UserSbumittedTestRecordDto
-    ) {
-        return await this.dashboardService.submitUserTest(testId, body);
-    }
+    // @Get('subject-tests/:subjectId')
+    // async getSubjectTests(@Param('subjectId') subjectId: string) {
+    //     return await this.dashboardService.getSubjectTests(subjectId);
+    // }
+
+    // @Get('test-questions/:testId')
+    // async getTestQuestions(@Param('testId') TestId: string) {
+    //     return await this.dashboardService.getTestQuestions(TestId);
+    // }
+
+    // @Post('create-test/:testId/user/:userId')
+    // async createUserTestRecord(@Param('testId') testId: string, @Param('userId') userId: string) {
+    //     return await this.dashboardService.createUserTestRecord(testId, userId);
+    // }
+
+    // @Patch('update-test/:testId')
+    // async updateUserTestRecord(
+    //     @Param('testId') testId: string,
+    //     @Body() body: UserTestRecordDto
+    // ) {
+    //     return await this.dashboardService.updateUserTestRecord(testId, body);
+    // }
+
+    // @Patch('submit-test/:testId')
+    // async submitUserTest(
+    //     @Param('testId') testId: string,
+    //     @Body() body: UserSbumittedTestRecordDto
+    // ) {
+    //     return await this.dashboardService.submitUserTest(testId, body);
+    // }
 }

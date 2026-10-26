@@ -1,8 +1,5 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+// user-test-answer.entity.ts
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 @Entity('user_test_answers')
 export class UserTestAnswer {

@@ -38,18 +38,18 @@ export class DashboardService {
         }
     }
 
-    async getMockTestCategories() {
+    async getExams() {
         try {
-            const cachedMockTestCategories = await this.redisService.get('mock-test-categories');
-            if (cachedMockTestCategories) {
+            const cachedExamsList = await this.redisService.get('exams-list');
+            if (cachedExamsList) {
                 return {
                     status: true,
-                    data: JSON.parse(cachedMockTestCategories)
+                    data: JSON.parse(cachedExamsList)
                 }
             }
-            const mockTests = await this.dashboardRepository.getMockTestCategories();
-            if (!mockTests.length) throw 'No mock tests found.';
-            await this.redisService.set('mock-test-categories', JSON.stringify(mockTests), 3600);
+            const mockTests = await this.dashboardRepository.getMockExamsList();
+            if (!mockTests.length) throw 'No subjects found.';
+            await this.redisService.set('exams-list', JSON.stringify(mockTests), 3600);
             return {
                 status: true,
                 data: mockTests
@@ -63,145 +63,148 @@ export class DashboardService {
         }
     }
 
-    async getMockTestSubjects(categoryId: string) {
+    async getExamSubjects(examId: string) {
         try {
-            const cachedMockTestSubjects = await this.redisService.get(`mock-test-subjects:${categoryId}`);
-            if (cachedMockTestSubjects) {
+            const cachedExamsSubjectList = await this.redisService.get(`exam-subject-:${examId}`);
+            if (cachedExamsSubjectList) {
                 return {
                     status: true,
-                    data: JSON.parse(cachedMockTestSubjects)
+                    data: JSON.parse(cachedExamsSubjectList)
                 }
             }
 
-            const mockTestSubjects = await this.dashboardRepository.getMockTestSubjectsByCategoryId(categoryId);
+            const examSubjects = await this.dashboardRepository.getExamsSubjects(examId)
+            if (!examSubjects.length) throw 'No subjects found.';
 
-            if (!mockTestSubjects.length) throw 'No mock test subjects found.';
-
-            await this.redisService.set(`mock-test-subjects:${categoryId}`, JSON.stringify(mockTestSubjects), 3600);
-
+            await this.redisService.set(`exam-subject-:${examId}`, JSON.stringify(examSubjects), 3600);
             return {
                 status: true,
-                data: mockTestSubjects
+                data: examSubjects
             }
         } catch (error) {
-            console.error('SourceError:- getMockTestSubjects', error, 'categoryId', categoryId);
+            console.error('SourceError:- getExamSubjects', error);
             return {
                 status: false,
-                message: error || 'Something went wrong while fetching mock test subjects.'
+                message: error || 'Something went wrong while fetching subjects.'
             }
         }
     }
 
-    async getSubjectTests(subjectId: string) {
+    async getSubjectsTopic(subjectId: string) {
         try {
-            const cachedSubjectTests = await this.redisService.get(`subject-tests:${subjectId}`);
-            if (cachedSubjectTests) {
+            const cachedSubjectTopics = await this.redisService.get(`subject-topic-:${subjectId}`);
+            if (cachedSubjectTopics) {
                 return {
                     status: true,
-                    data: JSON.parse(cachedSubjectTests)
+                    data: JSON.parse(cachedSubjectTopics)
                 }
             }
-            const subjectTests = await this.dashboardRepository.getSubjectTestsBySubjectId(subjectId);
-            if (!subjectTests.length) throw 'No subject tests found.';
-            await this.redisService.set(`subject-tests:${subjectId}`, JSON.stringify(subjectTests), 3600);
+            const subjectTopic = await this.dashboardRepository.getSubjectTopic(subjectId);
+            if (!subjectTopic.length) throw 'No topics found.';
+
+            await this.redisService.set(`subject-topic-:${subjectId}`, JSON.stringify(subjectTopic), 3600);
             return {
                 status: true,
-                data: subjectTests
+                data: subjectTopic
             }
         } catch (error) {
-            console.error('SourceError:- getSubjectTests', error, 'subjectId', subjectId);
+            console.error('SourceError:- getSubjectsTopic', error);
             return {
                 status: false,
-                message: error || 'Something went wrong while fetching subject tests.'
+                message: error || 'Something went wrong while fetching topics.'
             }
         }
     }
 
-    async getTestQuestions(testId: string) {
+    async getTopicTests(topicId: string) {
         try {
-            const cachedTestQuestions = await this.redisService.get(`test-questions:${testId}`);
-            if (cachedTestQuestions) {
+            const cachedTopicTests = await this.redisService.get(`topic-tests-${topicId}`);
+            if (cachedTopicTests) {
                 return {
                     status: true,
-                    data: JSON.parse(cachedTestQuestions)
+                    data: JSON.parse(cachedTopicTests)
                 }
             }
-            const testQuestions = await this.dashboardRepository.getTestQuestionsByTestId(testId);
-            if (!testQuestions.length) throw 'No test questions found.';
-            await this.redisService.set(`test-questions:${testId}`, JSON.stringify(testQuestions), 3600);
+            const topicTests = await this.dashboardRepository.getTopicTests(topicId);
+            if (!topicTests) throw 'No tests found for this topic';
+            await this.redisService.set(`topic-tests-${topicId}`, JSON.stringify(topicTests), 3600);
             return {
                 status: true,
-                data: testQuestions
+                data: topicTests
             }
+
         } catch (error) {
-            console.error('SourceError:- getTestQuestions', error, 'testId', testId);
+            console.error('SourceError:- getTopicTests', error);
             return {
                 status: false,
-                message: error || 'Something went wrong while fetching test questions.'
+                message: error || 'Something went wrong while fetching topics.'
             }
         }
     }
 
-    async createUserTestRecord(testId: string, userId: string) {
+    async getTestDetails(testId: string) {
         try {
-            const result = await this.dashboardCommand.createUserTestRecord(testId, userId);
-            if (!result) throw 'Something went wrong while starting test. Please try again later.';
+            const cachedTestDetails = await this.redisService.get(`test-${testId}`);
+            if(cachedTestDetails) {
+                return {
+                    status: true,
+                    data: typeof cachedTestDetails === 'string' ? JSON.parse(cachedTestDetails) : cachedTestDetails,
+                }
+            }
+            const testDetails = await this.dashboardRepository.getTestDetails(testId);
+            if (!testDetails) throw 'No Test found';
+
+            await this.redisService.set(`test-${testId}`, JSON.stringify(testDetails), 3600);
+
             return {
                 status: true,
-                data: result,
-            };
-        } catch (error) {
-            console.error('SourceError:- createUserTestRecord', error, 'testId', testId, 'userId', userId);
-            throw error;
-        }
-    }
-
-    async updateUserTestRecord(testId: string, body: UserTestRecordDto) {
-        try {
-            const { userId, userTestId, questionId, selectedOptionId } = body;
-            const result = await this.dashboardCommand.updateUserTestRecord(testId, userId, userTestId, questionId, selectedOptionId);
-            if (!result) throw 'Something went wrong while updating test record. Please try again later.';
-        } catch (error) {
-            console.error('SourceError:- updateUserTestRecord', error, 'testId', testId, 'body', body);
-            throw error;
-        }
-    }
-
-    async submitUserTest(testId: string, body: UserSbumittedTestRecordDto) {
-        try {
-            const userTestAnswersReport = await this.dashboardRepository.getUserTestAnswers(body.userId, body.userTestId);
-
-            if (!userTestAnswersReport) throw 'Test Record not found. Please try again with correct details.';
-            if(userTestAnswersReport.is_submitted) throw 'Test has already been submitted.'
-
-            const mockTestRewardPerQuestion = parseInt(process.env.MOCK_TEST_SP_REWARD_PER_QUESTION || '5');
-            const totalSPToReward = userTestAnswersReport?.correct_answers * mockTestRewardPerQuestion;
-            const scoreAccuracy = userTestAnswersReport?.correct_answers > 0 ?
-                (userTestAnswersReport?.correct_answers / userTestAnswersReport?.total_questions_attempted) * 100
-                : 0;
-            const completedAt = new Date();
-            const startedAt = new Date(userTestAnswersReport.started_at);
-            const timeTakenMin = Math.floor(Math.floor((completedAt.getTime() - startedAt.getTime()) / 1000)) / 60;
-
-            const updateResult = await this.dashboardCommand.submitUserTest(
-                testId, body.userId, body.userTestId, totalSPToReward, scoreAccuracy, timeTakenMin, completedAt
-            )
-            if(!updateResult) {
-                throw 'Something went wrong while submitting test. Please try again later.';
+                data: testDetails
             }
 
-            const walletUpdateResult = await this.walletService.updateUserWallet(body.userId, totalSPToReward, 'mock_test_reward');
-            if(!walletUpdateResult.status) {
-                throw 'Something went wrong while updating user wallet. Please contact us.';
-            }
-
+        } catch (error) {
+            console.error('SourceError:- getTestDetails', error);
             return {
-                status: true, 
-                message: 'Test submitted successfully.'
+                status: false,
+                message: error || 'Something went wrong while fetching topics.'
             }
-        } catch (error) {
-            console.error('SourceError:- submitUserTest', error, 'testId', testId, 'body', body);
-            throw error;
         }
     }
+
+    // async submitUserTest(testId: string, body: UserSbumittedTestRecordDto) {
+    //     try {
+    //         const userTestAnswersReport = await this.dashboardRepository.getUserTestAnswers(body.userId, body.userTestId);
+
+    //         if (!userTestAnswersReport) throw 'Test Record not found. Please try again with correct details.';
+    //         if (userTestAnswersReport.is_submitted) throw 'Test has already been submitted.'
+
+    //         const mockTestRewardPerQuestion = parseInt(process.env.MOCK_TEST_SP_REWARD_PER_QUESTION || '5');
+    //         const totalSPToReward = userTestAnswersReport?.correct_answers * mockTestRewardPerQuestion;
+    //         const scoreAccuracy = userTestAnswersReport?.correct_answers > 0 ?
+    //             (userTestAnswersReport?.correct_answers / userTestAnswersReport?.total_questions_attempted) * 100
+    //             : 0;
+    //         const completedAt = new Date();
+    //         const startedAt = new Date(userTestAnswersReport.started_at);
+    //         const timeTakenMin = Math.floor(Math.floor((completedAt.getTime() - startedAt.getTime()) / 1000)) / 60;
+
+    //         const updateResult = await this.dashboardCommand.submitUserTest(
+    //             testId, body.userId, body.userTestId, totalSPToReward, scoreAccuracy, timeTakenMin, completedAt
+    //         )
+    //         if (!updateResult) {
+    //             throw 'Something went wrong while submitting test. Please try again later.';
+    //         }
+
+    //         const walletUpdateResult = await this.walletService.updateUserWallet(body.userId, totalSPToReward, 'mock_test_reward');
+    //         if (!walletUpdateResult.status) {
+    //             throw 'Something went wrong while updating user wallet. Please contact us.';
+    //         }
+
+    //         return {
+    //             status: true,
+    //             message: 'Test submitted successfully.'
+    //         }
+    //     } catch (error) {
+    //         console.error('SourceError:- submitUserTest', error, 'testId', testId, 'body', body);
+    //         throw error;
+    //     }
+    // }
 }

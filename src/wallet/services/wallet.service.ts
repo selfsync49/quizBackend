@@ -17,7 +17,22 @@ export class WalletService {
 
             const userWalletInfoandTransaction = await this.walletRepository.getUserWalletWithTransactions(userId, limit, page);
 
-            if (userWalletInfoandTransaction.length == 0) throw 'No Skll Bank account details found.';
+            if (!userWalletInfoandTransaction || userWalletInfoandTransaction.length == 0) {
+                return {
+                    status: true,
+                    data: {
+                        walletInfo: [{
+                            user_id: userId,
+                            balance_sp: 0,
+                            total_earned_sp: 0,
+                            total_withdrawn_sp: 0,
+                            created_at: new Date(),
+                            id: '',
+                        }],
+                        transactions: [],
+                    },
+                };
+            }
 
             const walletInfo: SkillBankAccount[] = [{
                 user_id: userWalletInfoandTransaction[0].user_id,
