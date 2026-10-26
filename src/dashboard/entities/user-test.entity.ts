@@ -1,8 +1,5 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+// user-test.entity.ts
+import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
 export enum UserTestStatus {
   IN_PROGRESS = 'in_progress',
@@ -15,10 +12,10 @@ export class UserTest {
   id: string;
 
   @Column({ type: 'uuid' })
-  test_id: string;
+  user_id: string;
 
   @Column({ type: 'uuid' })
-  user_id: string;
+  test_id: string;
 
   @Column({
     type: 'enum',
@@ -31,24 +28,21 @@ export class UserTest {
   @Column({ type: 'int', nullable: true })
   score: number | null;
 
+  @Column({ type: 'int', nullable: true })
+  correct_answers: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  questions_attempted: number | null;
+
   @Column({ type: 'bigint', default: 0 })
   sp_earned: number;
 
   @Column({ type: 'int', nullable: true })
   time_taken_seconds: number | null;
 
-  @Column({ type: 'int', default: 0 })
-  total_questions_attempted: number;
-
-  @Column({ type: 'int', default: 0 })
-  correct_answers: number;
-
   @Column({ type: 'timestamptz', default: () => 'now()' })
   started_at: Date;
 
   @Column({ type: 'timestamptz', nullable: true })
   completed_at: Date | null;
-
-  @Column({ type: 'boolean', default: false })
-  is_submitted: boolean;
 }

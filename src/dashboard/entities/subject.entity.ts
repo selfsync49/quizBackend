@@ -1,21 +1,13 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+// subject.entity.ts
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-@Entity('mock_test_categories')
-export class MockTestCategory {
+@Entity('subjects')
+export class Subject {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({ type: 'varchar' })
   name: string;
-
-  @Column({ type: 'varchar' })
-  short_name: string;
 
   @Column({ type: 'text', nullable: true })
   description: string | null;
