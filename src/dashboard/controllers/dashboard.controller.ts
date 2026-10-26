@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { DashboardService } from '../services/dashboard.services';
-import type { UserSbumittedTestRecordDto, UserTestRecordDto } from '../dtos/dashboard.dtos';
+import type { StartTestDto, SubmitAnswerDto, SubmitTestDto, UserSbumittedTestRecordDto, UserTestRecordDto } from '../dtos/dashboard.dtos';
 @Controller('dashboard')
 export class DashboardController {
     constructor(
@@ -34,6 +34,21 @@ export class DashboardController {
     @Get('tests/:testId')
     async getTestDetails(@Param('testId') testId: string) {
         return await this.dashboardService.getTestDetails(testId);
+    }
+
+    @Post('tests/start')
+    async startTest(@Body() body: StartTestDto) {
+        return await this.dashboardService.startTest(body.userId, body.testId);
+    }
+
+    @Patch('tests/answer')
+    async submitAnswer(@Body() body: SubmitAnswerDto) {
+        return await this.dashboardService.submitAnswer(body.userTestId, body.questionId, body.selectedOptionId);
+    }
+
+    @Patch('tests/submit')
+    async submitTest(@Body() body: SubmitTestDto) {
+        return await this.dashboardService.submitTest(body.userTestId);
     }
 
     // @Get('mock-tests/:categoryId')

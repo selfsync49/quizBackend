@@ -170,6 +170,72 @@ export class DashboardService {
         }
     }
 
+    async startTest(userId: string, testId: string) {
+        try {
+            if (!userId || !testId) throw 'userId and testId are required.';
+
+            const userTest = await this.dashboardCommand.createUserTest(userId, testId);
+            if (!userTest) throw 'Could not start the test. Please try again.';
+
+            return {
+                status: true,
+                data: userTest,
+            };
+        } catch (error) {
+            console.error('SourceError:- startTest', error, 'userId', userId, 'testId', testId);
+            return {
+                status: false,
+                message: error || 'Something went wrong while starting the test.',
+            };
+        }
+    }
+
+    async submitAnswer(userTestId: string, questionId: string, selectedOptionId: string) {
+        try {
+            if (!userTestId || !questionId || !selectedOptionId) {
+                throw 'userTestId, questionId and selectedOptionId are required.';
+            }
+
+            // Resolve whether the selected option is correct
+            const isCorrect = await this.dashboardRepository.checkIsCorrectOption(selectedOptionId);
+
+            const saved = await this.dashboardCommand.upsertAnswer(userTestId, questionId, selectedOptionId, isCorrect);
+            if (!saved) throw 'Could not save the answer. Please try again.';
+
+            return {
+                status: true,
+                data: { isCorrect },
+                message: 'Answer saved.',
+            };
+        } catch (error) {
+            console.error('SourceError:- submitAnswer', error, 'userTestId', userTestId, 'questionId', questionId);
+            return {
+                status: false,
+                message: error || 'Something went wrong while saving the answer.',
+            };
+        }
+    }
+
+    async submitTest(userTestId: string) {
+        try {
+            if (!userTestId) throw 'userTestId is required.';
+
+            const result = await this.dashboardCommand.submitTest(userTestId);
+            if (!result) throw 'Could not submit the test. Please try again.';
+
+            return {
+                status: true,
+                message: 'Test submitted successfully.',
+            };
+        } catch (error) {
+            console.error('SourceError:- submitTest', error, 'userTestId', userTestId);
+            return {
+                status: false,
+                message: error || 'Something went wrong while submitting the test.',
+            };
+        }
+    }
+
     // async submitUserTest(testId: string, body: UserSbumittedTestRecordDto) {
     //     try {
     //         const userTestAnswersReport = await this.dashboardRepository.getUserTestAnswers(body.userId, body.userTestId);

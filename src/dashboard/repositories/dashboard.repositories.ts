@@ -122,4 +122,18 @@ export class DashboardRepository {
             return [];
         }
     }
+
+    // Returns true if the given option is the correct answer for its question.
+    async checkIsCorrectOption(selectedOptionId: string): Promise<boolean> {
+        try {
+            const rows: { is_correct: boolean }[] = await this.testQuestionRepo.query(
+                `SELECT is_correct FROM question_bank_options WHERE id = $1 LIMIT 1`,
+                [selectedOptionId],
+            );
+            return rows.length > 0 ? rows[0].is_correct : false;
+        } catch (error) {
+            console.error('SourceError:- checkIsCorrectOption', error, 'selectedOptionId', selectedOptionId);
+            return false;
+        }
+    }
 }
