@@ -189,7 +189,7 @@ export class UserRepository {
                     d.author_name,
                     d.author_handle,
                     d.author_badge,
-                    d.author_avatar,
+                    COALESCE(d.author_avatar, u.avatar_url) AS author_avatar,
                     d.is_anonymous,
                     d.category,
                     d.title,
@@ -204,6 +204,7 @@ export class UserRepository {
                     d.comments_count,
                     d.created_at
                 FROM discussions d
+                LEFT JOIN users u ON d.user_id = u.id
                 WHERE 1=1
             `;
             const params: any[] = [];
@@ -305,7 +306,7 @@ export class UserRepository {
                 authorName,
                 authorHandle,
                 data.authorBadge || null,
-                data.authorAvatar || null,
+                data.authorAvatar || (data as any).author_avatar || (data as any).avatar_url || null,
                 isAnon,
                 category,
                 title,

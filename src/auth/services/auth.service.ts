@@ -62,6 +62,17 @@ export class AuthService {
           } catch (_) {}
         }
 
+        // Update avatar_url for existing user if provided
+        if (dto.avatarUrl && user.id) {
+          try {
+            await this.userRepository.query(
+              `UPDATE users SET avatar_url = $1 WHERE id = $2;`,
+              [dto.avatarUrl, user.id],
+            );
+            user.avatar_url = dto.avatarUrl;
+          } catch (_) {}
+        }
+
         const accessToken = this.generateToken(user);
         return {
           statusCode: 200,

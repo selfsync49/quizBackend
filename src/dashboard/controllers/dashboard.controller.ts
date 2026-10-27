@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { DashboardService } from '../services/dashboard.services';
-import type { StartTestDto, SubmitAnswerDto, SubmitTestDto, UserSbumittedTestRecordDto, UserTestRecordDto } from '../dtos/dashboard.dtos';
+import { StartTestDto, SubmitAnswerDto, SubmitTestDto, UserSbumittedTestRecordDto, UserTestRecordDto } from '../dtos/dashboard.dtos';
 @Controller('dashboard')
 export class DashboardController {
     constructor(
@@ -38,7 +38,7 @@ export class DashboardController {
 
     @Post('tests/start')
     async startTest(@Body() body: StartTestDto) {
-        return await this.dashboardService.startTest(body.userId, body.testId);
+        return await this.dashboardService.startTest(body.userId, body.testId, body.restart ?? false);
     }
 
     @Patch('tests/answer')
@@ -51,15 +51,15 @@ export class DashboardController {
         return await this.dashboardService.submitTest(body.userTestId);
     }
 
-    // @Get('mock-tests/:categoryId')
-    // async getMockTestSubjects(@Param('categoryId') categoryId: string) {
-    //     return await this.dashboardService.getMockTestSubjects(categoryId);
-    // }
+    @Get('exam-tests/:examId')
+    async getExamTests(@Param('examId') examId: string) {
+        return await this.dashboardService.getExamTests(examId);
+    }
 
-    // @Get('subject-tests/:subjectId')
-    // async getSubjectTests(@Param('subjectId') subjectId: string) {
-    //     return await this.dashboardService.getSubjectTests(subjectId);
-    // }
+    @Get('subject-tests/:subjectId')
+    async getSubjectTests(@Param('subjectId') subjectId: string) {
+        return await this.dashboardService.getSubjectTests(subjectId);
+    }
 
     // @Get('test-questions/:testId')
     // async getTestQuestions(@Param('testId') TestId: string) {

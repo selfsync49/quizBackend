@@ -22,11 +22,14 @@ export class DashboardService {
             let userWallet = await this.walletService.getUserWalletInfoByUserid(userId);
             if (!userWallet.length) userWallet = [];
 
+            const testStats = await this.dashboardCommand.getUserTestStats(userId);
+
             return {
                 status: true,
                 data: {
                     userDetailsAndStreak,
-                    userWallet
+                    userWallet,
+                    testStats,
                 }
             }
         } catch (e) {
@@ -116,6 +119,54 @@ export class DashboardService {
         }
     }
 
+    async getExamTests(examId: string) {
+        try {
+            const cached = await this.redisService.get(`exam-tests-${examId}`);
+            if (cached) {
+                return {
+                    status: true,
+                    data: JSON.parse(cached),
+                };
+            }
+            const tests = await this.dashboardRepository.getExamTests(examId);
+            await this.redisService.set(`exam-tests-${examId}`, JSON.stringify(tests), 3600);
+            return {
+                status: true,
+                data: tests,
+            };
+        } catch (error) {
+            console.error('SourceError:- getExamTests', error);
+            return {
+                status: true,
+                data: [],
+            };
+        }
+    }
+
+    async getSubjectTests(subjectId: string) {
+        try {
+            const cached = await this.redisService.get(`subject-tests-${subjectId}`);
+            if (cached) {
+                return {
+                    status: true,
+                    data: JSON.parse(cached),
+                };
+            }
+            const tests = await this.dashboardRepository.getSubjectTests(subjectId);
+            await this.redisService.set(`subject-tests-${subjectId}`, JSON.stringify(tests), 3600);
+            return {
+                status: true,
+                data: tests,
+            };
+        } catch (error) {
+            console.error('SourceError:- getSubjectTests', error);
+            return {
+                status: true,
+                data: [],
+            };
+        }
+    }
+
     async getTopicTests(topicId: string) {
         try {
             const cachedTopicTests = await this.redisService.get(`topic-tests-${topicId}`);
@@ -170,11 +221,11 @@ export class DashboardService {
         }
     }
 
-    async startTest(userId: string, testId: string) {
+    async startTest(userId: string, testId: string, restart: boolean = false) {
         try {
             if (!userId || !testId) throw 'userId and testId are required.';
 
-            const userTest = await this.dashboardCommand.createUserTest(userId, testId);
+            const userTest = await this.dashboardCommand.createUserTest(userId, testId, restart);
             if (!userTest) throw 'Could not start the test. Please try again.';
 
             return {
@@ -225,6 +276,7 @@ export class DashboardService {
 
             return {
                 status: true,
+                data: typeof result === 'object' ? result : { userTestId },
                 message: 'Test submitted successfully.',
             };
         } catch (error) {
