@@ -23,4 +23,9 @@ export class AuthController {
   async getProfile(@CurrentUser() user: any) {
     return this.authService.getProfile(user.id);
   }
+
+  @Post('/dev-login')
+  async devLogin(@Body() body: { email?: string; password?: string }) {
+    return this.authService.loginAsDeveloper(body);
+  }
 }

@@ -71,12 +71,34 @@ export class DashboardRepository {
         }
     }
 
+    async getExamTests(examId: string) {
+        try {
+            return await this.testRepo.find({
+                where: { exam_id: examId, scope: TestScope.EXAM, is_active: true }
+            });
+        } catch (error) {
+            console.error('SourceError:- getExamTests', error, 'examId', examId);
+            return [];
+        }
+    }
+
+    async getSubjectTests(subjectId: string) {
+        try {
+            return await this.testRepo.find({
+                where: { subject_id: subjectId, scope: TestScope.SUBJECT, is_active: true }
+            });
+        } catch (error) {
+            console.error('SourceError:- getSubjectTests', error, 'subjectId', subjectId);
+            return [];
+        }
+    }
+
     async getTopicTests(topicId: string) {
         try {
-            const topicTests = this.testRepo.find({
+            const topicTests = await this.testRepo.find({
                 where: { topic_id: topicId, scope: TestScope.TOPIC }
-            })
-            return topicTests
+            });
+            return topicTests;
         } catch (error) {
             console.error('SourceError:- getTopicTests', error, 'topicId', topicId);
             return [];

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, BadRequestException } from "@nestjs/common";
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, BadRequestException } from "@nestjs/common";
 import { UserService, S3Service } from "../services";
 
 @Controller('user')
@@ -34,8 +34,12 @@ export class UserController {
     }
 
     @Get('/discussions')
-    async getDiscussions(@Query('category') category?: string, @Query('sort') sort?: string) {
-        return this.userService.getDiscussions(category, sort);
+    async getDiscussions(
+        @Query('category') category?: string,
+        @Query('sort') sort?: string,
+        @Query('userId') userId?: string,
+    ) {
+        return this.userService.getDiscussions(category, sort, userId);
     }
 
     @Post('/discussions')
@@ -44,8 +48,51 @@ export class UserController {
     }
 
     @Post('/discussions/:id/vote')
-    async voteDiscussion(@Param('id') id: string, @Body('delta') delta: number) {
-        return this.userService.voteDiscussion(id, delta ?? 1);
+    async voteDiscussion(
+        @Param('id') id: string,
+        @Body('delta') delta: number,
+        @Body('userId') userId?: string,
+    ) {
+        return this.userService.voteDiscussion(id, delta ?? 1, userId);
+    }
+
+    @Get('/discussions/:id/comments')
+    async getDiscussionComments(@Param('id') id: string) {
+        return this.userService.getDiscussionComments(id);
+    }
+
+    @Post('/discussions/:id/comments')
+    async addDiscussionComment(@Param('id') id: string, @Body() body: any) {
+        return this.userService.addDiscussionComment(id, body);
+    }
+
+    @Put('/discussions/:id')
+    async updateDiscussion(
+        @Param('id') id: string,
+        @Body() body: { title?: string; content?: string; category?: string },
+    ) {
+        return this.userService.updateDiscussion(id, body);
+    }
+
+    @Delete('/discussions/:id')
+    async deleteDiscussion(@Param('id') id: string) {
+        return this.userService.deleteDiscussion(id);
+    }
+
+    @Put('/discussions/comments/:commentId')
+    async updateDiscussionComment(
+        @Param('commentId') commentId: string,
+        @Body('content') content: string,
+    ) {
+        return this.userService.updateDiscussionComment(commentId, content);
+    }
+
+    @Delete('/discussions/comments/:commentId')
+    async deleteDiscussionComment(
+        @Param('commentId') commentId: string,
+        @Query('discussionId') discussionId?: string,
+    ) {
+        return this.userService.deleteDiscussionComment(commentId, discussionId);
     }
 
     @Post('/upload')
@@ -78,5 +125,18 @@ export class UserController {
             success: true,
             ...result,
         };
+    }
+
+    @Post('/referral/claim')
+    async claimReferral(@Body() body: { userId: string; referralCode: string }) {
+        if (!body.userId || !body.referralCode) {
+            throw new BadRequestException('userId and referralCode are required');
+        }
+        return this.userService.claimReferral(body.userId, body.referralCode);
+    }
+
+    @Get('/referral/info/:userId')
+    async getReferralInfo(@Param('userId') userId: string) {
+        return this.userService.getReferralInfo(userId);
     }
 }

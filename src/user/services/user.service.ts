@@ -162,8 +162,8 @@ export class UserService implements OnModuleInit {
     }
   }
 
-  async getDiscussions(category?: string, sort?: string) {
-    return this.userRepository.getDiscussions(category, sort);
+  async getDiscussions(category?: string, sort?: string, userId?: string) {
+    return this.userRepository.getDiscussions(category, sort, userId);
   }
 
   async createDiscussion(data: {
@@ -185,7 +185,46 @@ export class UserService implements OnModuleInit {
     return this.userRepository.createDiscussion(data);
   }
 
-  async voteDiscussion(id: string, delta: number) {
-    return this.userRepository.voteDiscussion(id, delta);
+  async voteDiscussion(id: string, delta: number, userId?: string) {
+    return this.userRepository.voteDiscussion(id, delta, userId);
+  }
+
+  async getDiscussionComments(discussionId: string) {
+    return this.userRepository.getDiscussionComments(discussionId);
+  }
+
+  async addDiscussionComment(discussionId: string, data: {
+    userId?: string;
+    authorName: string;
+    authorAvatar?: string;
+    content: string;
+  }) {
+    return this.userRepository.addDiscussionComment(discussionId, data);
+  }
+
+  async updateDiscussion(id: string, data: { title?: string; content?: string; category?: string }) {
+    return this.userRepository.updateDiscussion(id, data);
+  }
+
+  async deleteDiscussion(id: string) {
+    const success = await this.userRepository.deleteDiscussion(id);
+    return { success, message: success ? 'Post deleted successfully' : 'Failed to delete post' };
+  }
+
+  async updateDiscussionComment(commentId: string, content: string) {
+    return this.userRepository.updateDiscussionComment(commentId, content);
+  }
+
+  async deleteDiscussionComment(commentId: string, discussionId?: string) {
+    const success = await this.userRepository.deleteDiscussionComment(commentId, discussionId);
+    return { success, message: success ? 'Comment deleted successfully' : 'Failed to delete comment' };
+  }
+
+  async claimReferral(userId: string, referralCode: string) {
+    return this.userRepository.claimReferral(userId, referralCode);
+  }
+
+  async getReferralInfo(userId: string) {
+    return this.userRepository.getReferralInfo(userId);
   }
 }

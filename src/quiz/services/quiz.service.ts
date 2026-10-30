@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { QuizRepository } from '../repositories/quiz.repository';
 import { QuizCommand } from '../commands/quiz.command';
 import { RedisService } from 'src/shared-svc';
+import { SubmitQuizAttemptDto } from '../dtos/quiz.dtos';
 
 @Injectable()
 export class QuizService {
@@ -16,7 +17,12 @@ export class QuizService {
             const cacheKey = `quizzes-today-${new Date().toISOString().slice(0, 10)}`;
             const cached = await this.redisService.get(cacheKey);
             if (cached) {
-                return { status: true, data: JSON.parse(cached) };
+                try {
+                    const parsed = JSON.parse(cached);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        return { status: true, data: parsed };
+                    }
+                } catch (_) {}
             }
 
             const quizzes = await this.quizRepository.getTodaysQuizzes();
@@ -39,7 +45,12 @@ export class QuizService {
             const cacheKey = `quiz-questions-${quizId}`;
             const cached = await this.redisService.get(cacheKey);
             if (cached) {
-                return { status: true, data: JSON.parse(cached) };
+                try {
+                    const parsed = JSON.parse(cached);
+                    if (parsed?.questions?.length > 0 && parsed.questions[0].options?.length > 0) {
+                        return { status: true, data: parsed };
+                    }
+                } catch (_) {}
             }
 
             const quiz = await this.quizRepository.getQuizById(quizId);
@@ -55,5 +66,13 @@ export class QuizService {
             console.error('SourceError:- getQuizWithQuestions', error, 'quizId', quizId);
             return { status: false, message: error || 'Something went wrong while fetching quiz details.' };
         }
+    }
+
+    async submitQuizAttempt(dto: SubmitQuizAttemptDto) {
+        return await this.quizCommand.submitQuizAttempt(dto);
+    }
+
+    async getUserQuizStatus(userId: string) {
+        return await this.quizCommand.getUserQuizStatus(userId);
     }
 }
