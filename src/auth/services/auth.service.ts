@@ -78,7 +78,11 @@ export class AuthService {
           statusCode: 200,
           message: 'Google login successful',
           accessToken,
-          user,
+          user: {
+            ...user,
+            isNewUser: false,
+          },
+          isNewUser: false,
         };
       }
 
@@ -131,7 +135,11 @@ export class AuthService {
         statusCode: 200,
         message: 'Google signup & login successful',
         accessToken,
-        user: newUser,
+        user: {
+          ...newUser,
+          isNewUser: true,
+        },
+        isNewUser: true,
       };
     } catch (error) {
       console.error('SourceError:- loginWithGoogle:', error);
@@ -166,6 +174,69 @@ export class AuthService {
     return {
       statusCode: 200,
       user: users[0],
+    };
+  }
+
+  async loginAsDeveloper(body?: { email?: string; password?: string }) {
+    await this.userRepository.ensureProfileColumnsExist();
+
+    const email = (body?.email || 'developer@gyaanzo.com').toLowerCase().trim();
+    const username = email.includes('@') ? email.split('@')[0] : 'developer';
+    const fullName = 'Developer Admin';
+
+    // 1. Check if user already exists
+    const existing = await this.userRepository.query(
+      `SELECT * FROM users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($2) LIMIT 1;`,
+      [email, username],
+    );
+
+    let devUser: any;
+    if (existing && existing.length > 0) {
+      devUser = existing[0];
+      // Elevate to admin role
+      await this.userRepository.query(
+        `UPDATE users SET role = 'admin', is_admin = TRUE WHERE id = $1;`,
+        [devUser.id],
+      );
+      devUser.role = 'admin';
+      devUser.is_admin = true;
+      console.log('⚡ Developer login for existing user elevated to admin:', devUser.id, devUser.email);
+    } else {
+      // Create new developer admin user
+      const inserted = await this.userRepository.query(
+        `INSERT INTO users (email, username, full_name, role, is_admin, target_exam, qualification, preferred_language)
+         VALUES ($1, $2, $3, 'admin', TRUE, 'All Exams', 'Admin/Developer', 'English')
+         RETURNING *;`,
+        [email, username, fullName],
+      );
+      devUser = inserted[0];
+      console.log('⚡ New developer admin user created:', devUser?.id, devUser?.email);
+    }
+
+    // Ensure wallet exists for developer account
+    if (devUser?.id) {
+      try {
+        await this.userRepository.query(
+          `INSERT INTO skill_bank_accounts (user_id, balance_sp, total_earned_sp, total_withdrawn_sp)
+           VALUES ($1, 1000, 1000, 0)
+           ON CONFLICT (user_id) DO NOTHING;`,
+          [devUser.id],
+        );
+      } catch (_) {}
+    }
+
+    const accessToken = this.generateToken(devUser);
+    return {
+      statusCode: 200,
+      message: 'Developer admin login successful',
+      accessToken,
+      role: 'admin',
+      isAdmin: true,
+      user: {
+        ...devUser,
+        role: 'admin',
+        is_admin: true,
+      },
     };
   }
 }

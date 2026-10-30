@@ -22,6 +22,42 @@ export class QuizCommand {
         return users && users.length > 0 ? users[0].id : null;
     }
 
+    private async ensureAttemptsConstraint() {
+        try {
+            await this.dataSource.query(`
+                DO $$
+                DECLARE
+                    r RECORD;
+                BEGIN
+                    -- Drop legacy UNIQUE(user_id, quiz_id) constraints that block playing across days
+                    FOR r IN (
+                        SELECT c.conname
+                        FROM pg_constraint c
+                        JOIN pg_class t ON c.conrelid = t.oid
+                        WHERE t.relname = 'quiz_attempts'
+                          AND c.contype = 'u'
+                          AND c.conname != 'quiz_attempts_pkey'
+                    ) LOOP
+                        EXECUTE 'ALTER TABLE quiz_attempts DROP CONSTRAINT IF EXISTS ' || quote_ident(r.conname) || ';';
+                    END LOOP;
+
+                    -- Drop legacy unique index as well (excluding primary key)
+                    FOR r IN (
+                        SELECT indexname
+                        FROM pg_indexes
+                        WHERE tablename = 'quiz_attempts'
+                          AND indexdef ILIKE '%UNIQUE%'
+                          AND indexname NOT LIKE '%pkey%'
+                    ) LOOP
+                        EXECUTE 'DROP INDEX IF EXISTS ' || quote_ident(r.indexname) || ';';
+                    END LOOP;
+                END $$;
+            `);
+        } catch (e) {
+            // Ignore if constraints already clean
+        }
+    }
+
     async submitQuizAttempt(dto: SubmitQuizAttemptDto) {
         try {
             if (!dto.userId || !dto.quizId) {
@@ -33,11 +69,15 @@ export class QuizCommand {
                 return { status: false, message: 'User account not found.' };
             }
 
-            // 1. Check if user has already submitted this quiz
+            await this.ensureAttemptsConstraint();
+
+            // 1. Check if user has already submitted this quiz TODAY (in IST timezone)
             const existingAttempt = await this.dataSource.query(
                 `SELECT id, total_sp_earned, score, correct_count, submitted_at 
                  FROM quiz_attempts 
-                 WHERE user_id = $1 AND quiz_id = $2;`,
+                 WHERE user_id = $1 
+                   AND quiz_id = $2
+                   AND (submitted_at AT TIME ZONE 'Asia/Kolkata')::date = (NOW() AT TIME ZONE 'Asia/Kolkata')::date;`,
                 [targetUserId, dto.quizId],
             );
 
@@ -184,6 +224,9 @@ export class QuizCommand {
                 };
             }
 
+            await this.ensureAttemptsConstraint();
+
+            // Fetch only attempts made TODAY (in IST) so previous days' quizzes reset automatically on day change
             const attempts = await this.dataSource.query(
                 `SELECT 
                     qa.id AS attempt_id,
@@ -199,6 +242,7 @@ export class QuizCommand {
                  FROM quiz_attempts qa
                  JOIN quizzes q ON q.id = qa.quiz_id
                  WHERE qa.user_id = $1
+                   AND (qa.submitted_at AT TIME ZONE 'Asia/Kolkata')::date = (NOW() AT TIME ZONE 'Asia/Kolkata')::date
                  ORDER BY qa.submitted_at DESC;`,
                 [targetUserId],
             );
@@ -223,9 +267,9 @@ export class QuizCommand {
 
                     const title = (att.quiz_title || '').toLowerCase();
                     const qType = (att.quiz_type || '').toLowerCase();
-                    if (title.contains?.('morning') || title.includes('morning') || title.includes('day') || qType.includes('morning')) {
+                    if (title.includes('morning') || title.includes('day') || qType.includes('morning') || qType.includes('day')) {
                         dayQuizAttempted = true;
-                    } else if (title.includes('evening') || title.includes('night') || qType.includes('evening')) {
+                    } else if (title.includes('evening') || title.includes('night') || qType.includes('evening') || qType.includes('night')) {
                         nightQuizAttempted = true;
                     }
                 }
