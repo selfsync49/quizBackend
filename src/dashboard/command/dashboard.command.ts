@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
-import { UserTest, UserTestAnswer, UserTestStatus } from '../entities';
+import { UserTest, UserTestAnswer, UserTestStatus, QuestionReport } from '../entities';
 
 @Injectable()
 export class DashboardCommand {
@@ -313,6 +313,24 @@ export class DashboardCommand {
         } catch (error) {
             console.error('SourceError:- getUserTestStats', error, 'userId', userId);
             return { testsAttempted: 0, accuracy: 0 };
+        }
+    }
+
+    // Inserts a question flag/report into question_reports.
+    // Idempotent: if the same user already reported the same question in the same test, it updates the description.
+    async flagQuestion(userId: string, testId: string, questionId: string, description?: string) {
+        try {
+            await this.dataSource.query(
+                `INSERT INTO question_reports (id, user_id, test_id, question_id, description, created_at)
+                 VALUES (gen_random_uuid(), $1, $2, $3, $4, NOW())
+                 ON CONFLICT (user_id, test_id, question_id)
+                 DO UPDATE SET description = EXCLUDED.description;`,
+                [userId, testId, questionId, description ?? null],
+            );
+            return true;
+        } catch (error) {
+            console.error('SourceError:- flagQuestion', error, 'userId', userId, 'questionId', questionId);
+            return false;
         }
     }
 }

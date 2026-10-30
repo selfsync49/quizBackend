@@ -325,4 +325,18 @@ export class DashboardService {
     //         throw error;
     //     }
     // }
+
+    async flagQuestion(userId: string, testId: string, questionId: string, description?: string) {
+        try {
+            if (!userId || !testId || !questionId) throw 'userId, testId and questionId are required.';
+
+            const saved = await this.dashboardCommand.flagQuestion(userId, testId, questionId, description);
+            if (!saved) throw 'Could not submit the report. Please try again.';
+
+            return { status: true, message: 'Question reported successfully.' };
+        } catch (error) {
+            console.error('SourceError:- flagQuestion', error, 'userId', userId, 'questionId', questionId);
+            return { status: false, message: error || 'Something went wrong while reporting the question.' };
+        }
+    }
 }

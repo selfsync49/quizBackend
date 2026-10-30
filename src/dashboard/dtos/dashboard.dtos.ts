@@ -65,3 +65,21 @@ export class SubmitTestDto {
     @IsOptional()
     userId?: string;
 }
+
+export class FlagQuestionDto {
+    @IsString()
+    @IsNotEmpty()
+    userId: string;
+
+    @IsString()
+    @IsNotEmpty()
+    testId: string;
+
+    @IsString()
+    @IsNotEmpty()
+    questionId: string;
+
+    @IsString()
+    @IsOptional()
+    description?: string;
+}

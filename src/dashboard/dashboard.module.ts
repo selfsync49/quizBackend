@@ -14,6 +14,7 @@ import {
   TestQuestion,
   UserTest,
   UserTestAnswer,
+  QuestionReport,
 } from './entities'
 import { DashboardCommand } from './command';
 
@@ -30,6 +31,7 @@ import { DashboardCommand } from './command';
       TestQuestion,
       UserTest,
       UserTestAnswer,
+      QuestionReport,
     ]),
   ],
   controllers: [DashboardController],

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post } from '@nestjs/common';
 import { DashboardService } from '../services/dashboard.services';
-import { StartTestDto, SubmitAnswerDto, SubmitTestDto, UserSbumittedTestRecordDto, UserTestRecordDto } from '../dtos/dashboard.dtos';
+import { FlagQuestionDto, StartTestDto, SubmitAnswerDto, SubmitTestDto, UserSbumittedTestRecordDto, UserTestRecordDto } from '../dtos/dashboard.dtos';
 @Controller('dashboard')
 export class DashboardController {
     constructor(
@@ -49,6 +49,11 @@ export class DashboardController {
     @Patch('tests/submit')
     async submitTest(@Body() body: SubmitTestDto) {
         return await this.dashboardService.submitTest(body.userTestId);
+    }
+
+    @Post('questions/flag')
+    async flagQuestion(@Body() body: FlagQuestionDto) {
+        return await this.dashboardService.flagQuestion(body.userId, body.testId, body.questionId, body.description);
     }
 
     @Get('exam-tests/:examId')

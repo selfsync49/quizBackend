@@ -7,3 +7,4 @@ export * from './test.entity';
 export * from './test-question.entity';
 export * from './user-test.entity';
 export * from './user-test-answer.entity';
+export * from './question-report.entity';
