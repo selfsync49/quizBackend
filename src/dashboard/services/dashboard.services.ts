@@ -288,6 +288,58 @@ export class DashboardService {
         }
     }
 
+    async getUserCompletedTests(userId: string) {
+        try {
+            if (!userId) return { status: false, message: 'userId is required.' };
+            const data = await this.dashboardCommand.getUserCompletedTests(userId);
+            return {
+                status: true,
+                data,
+            };
+        } catch (error) {
+            console.error('SourceError:- getUserCompletedTests', error, 'userId', userId);
+            return {
+                status: false,
+                message: error || 'Something went wrong while fetching completed tests.',
+            };
+        }
+    }
+
+    async getUserTestAttempts(testId: string, userId: string) {
+        try {
+            if (!testId || !userId) return { status: false, message: 'testId and userId are required.' };
+            const data = await this.dashboardCommand.getUserTestAttempts(userId, testId);
+            return {
+                status: true,
+                data,
+            };
+        } catch (error) {
+            console.error('SourceError:- getUserTestAttempts', error, 'testId', testId, 'userId', userId);
+            return {
+                status: false,
+                message: error || 'Something went wrong while fetching test attempts.',
+            };
+        }
+    }
+
+    async getAttemptReview(userTestId: string) {
+        try {
+            if (!userTestId) return { status: false, message: 'userTestId is required.' };
+            const data = await this.dashboardCommand.getAttemptReview(userTestId);
+            if (!data) return { status: false, message: 'Attempt review not found.' };
+            return {
+                status: true,
+                data,
+            };
+        } catch (error) {
+            console.error('SourceError:- getAttemptReview', error, 'userTestId', userTestId);
+            return {
+                status: false,
+                message: error || 'Something went wrong while fetching attempt review.',
+            };
+        }
+    }
+
     // async submitUserTest(testId: string, body: UserSbumittedTestRecordDto) {
     //     try {
     //         const userTestAnswersReport = await this.dashboardRepository.getUserTestAnswers(body.userId, body.userTestId);

@@ -134,9 +134,10 @@ export class S3Service {
         let respData = '';
         res.on('data', (c) => (respData += c));
         res.on('end', () => {
-          const fileUrl = `https://${host}${canonicalUri}`;
+          const rawUrl = `https://${host}${canonicalUri}`;
+          const fileUrl = this.getPresignedDownloadUrl(key, 7 * 86400, fileName);
           if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
-            console.log(`✅ AWS S3 Upload successful [${attachmentType}]: ${fileUrl}`);
+            console.log(`✅ AWS S3 Upload successful [${attachmentType}]: ${rawUrl}`);
           } else {
             console.warn(`S3 Upload response ${res.statusCode}:`, respData);
           }
@@ -153,7 +154,7 @@ export class S3Service {
 
       req.on('error', (err) => {
         console.error('S3 Upload Network Error:', err);
-        const fileUrl = `https://${host}${canonicalUri}`;
+        const fileUrl = this.getPresignedDownloadUrl(key, 7 * 86400, fileName);
         resolve({
           fileUrl,
           key,
@@ -250,5 +251,65 @@ export class S3Service {
     const fileUrl = `https://${host}${canonicalUri}`;
 
     return { uploadUrl, fileUrl, key, attachmentType };
+  }
+
+  /**
+   * Generate an AWS S3 Presigned GET URL for downloading or viewing private S3 objects
+   */
+  getPresignedDownloadUrl(
+    key: string,
+    expiresInSeconds: number = 86400,
+    downloadFileName?: string,
+  ): string {
+    const cleanKey = key.startsWith('/') ? key.substring(1) : key;
+    const host = this.getHost();
+
+    const now = new Date();
+    const amzDate = now.toISOString().replace(/[:-]|\.\d{3}/g, '');
+    const dateStamp = amzDate.substring(0, 8);
+    const credentialScope = `${dateStamp}/${this.region}/s3/aws4_request`;
+    const canonicalUri = `/${encodeURIComponent(cleanKey).replace(/%2F/g, '/')}`;
+
+    const queryParams: Record<string, string> = {
+      'X-Amz-Algorithm': 'AWS4-HMAC-SHA256',
+      'X-Amz-Credential': `${this.accessKeyId}/${credentialScope}`,
+      'X-Amz-Date': amzDate,
+      'X-Amz-Expires': expiresInSeconds.toString(),
+      'X-Amz-SignedHeaders': 'host',
+    };
+
+    if (downloadFileName) {
+      queryParams['response-content-disposition'] = `inline; filename="${downloadFileName}"`;
+    }
+
+    const canonicalQueryString = Object.keys(queryParams)
+      .sort()
+      .map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(queryParams[k])}`)
+      .join('&');
+
+    const canonicalHeaders = `host:${host}\n`;
+    const signedHeaders = 'host';
+    const payloadHash = 'UNSIGNED-PAYLOAD';
+
+    const canonicalRequest = [
+      'GET',
+      canonicalUri,
+      canonicalQueryString,
+      canonicalHeaders,
+      signedHeaders,
+      payloadHash,
+    ].join('\n');
+
+    const stringToSign = [
+      'AWS4-HMAC-SHA256',
+      amzDate,
+      credentialScope,
+      this.sha256(canonicalRequest),
+    ].join('\n');
+
+    const signingKey = this.getSigningKey(dateStamp);
+    const signature = crypto.createHmac('sha256', signingKey).update(stringToSign).digest('hex');
+
+    return `https://${host}${canonicalUri}?${canonicalQueryString}&X-Amz-Signature=${signature}`;
   }
 }

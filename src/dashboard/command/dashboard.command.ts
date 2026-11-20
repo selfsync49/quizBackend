@@ -11,7 +11,7 @@ export class DashboardCommand {
     ) { }
 
     // Resolves incoming userId (UUID, email, or username) into a valid user UUID from users table
-    private async resolveUserUuid(userId: string): Promise<string | null> {
+    public async resolveUserUuid(userId: string): Promise<string | null> {
         if (!userId) return null;
         const clean = userId.trim();
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(clean);
@@ -333,4 +333,159 @@ export class DashboardCommand {
             return false;
         }
     }
+
+    async getUserCompletedTests(userId: string) {
+        try {
+            const resolvedUserId = await this.resolveUserUuid(userId);
+            if (!resolvedUserId) return [];
+
+            const rows = await this.dataSource.query(
+                `SELECT 
+                    ut.test_id,
+                    COUNT(ut.id)::int AS attempt_count,
+                    MAX(ut.completed_at) AS last_completed_at,
+                    (
+                        SELECT id FROM user_tests 
+                        WHERE user_id = ut.user_id AND test_id = ut.test_id AND status = 'completed'
+                        ORDER BY completed_at DESC LIMIT 1
+                    ) AS latest_user_test_id,
+                    (
+                        SELECT correct_answers FROM user_tests 
+                        WHERE user_id = ut.user_id AND test_id = ut.test_id AND status = 'completed'
+                        ORDER BY completed_at DESC LIMIT 1
+                    ) AS latest_correct_answers,
+                    (
+                        SELECT questions_attempted FROM user_tests 
+                        WHERE user_id = ut.user_id AND test_id = ut.test_id AND status = 'completed'
+                        ORDER BY completed_at DESC LIMIT 1
+                    ) AS latest_questions_attempted,
+                    (
+                        SELECT score FROM user_tests 
+                        WHERE user_id = ut.user_id AND test_id = ut.test_id AND status = 'completed'
+                        ORDER BY completed_at DESC LIMIT 1
+                    ) AS latest_score
+                 FROM user_tests ut
+                 WHERE ut.user_id = $1 AND ut.status = 'completed'
+                 GROUP BY ut.user_id, ut.test_id`,
+                [resolvedUserId],
+            );
+            return rows;
+        } catch (error) {
+            console.error('SourceError:- getUserCompletedTests', error, 'userId', userId);
+            return [];
+        }
+    }
+
+    async getUserTestAttempts(userId: string, testId: string) {
+        try {
+            const resolvedUserId = await this.resolveUserUuid(userId);
+            if (!resolvedUserId) return [];
+
+            const rows = await this.dataSource.query(
+                `SELECT 
+                    ut.id,
+                    ut.user_id,
+                    ut.test_id,
+                    ut.status,
+                    ut.score,
+                    ut.correct_answers,
+                    ut.questions_attempted,
+                    ut.sp_earned,
+                    ut.time_taken_seconds,
+                    ut.started_at,
+                    ut.completed_at,
+                    t.name AS test_name,
+                    t.total_questions,
+                    t.time_minutes
+                 FROM user_tests ut
+                 INNER JOIN tests t ON t.id = ut.test_id
+                 WHERE ut.user_id = $1 AND ut.test_id = $2 AND ut.status = 'completed'
+                 ORDER BY ut.completed_at DESC`,
+                [resolvedUserId, testId],
+            );
+            return rows;
+        } catch (error) {
+            console.error('SourceError:- getUserTestAttempts', error, 'userId', userId, 'testId', testId);
+            return [];
+        }
+    }
+
+    async getAttemptReview(userTestId: string) {
+        try {
+            const attempts = await this.dataSource.query(
+                `SELECT 
+                    ut.id,
+                    ut.user_id,
+                    ut.test_id,
+                    ut.status,
+                    ut.score,
+                    ut.correct_answers,
+                    ut.questions_attempted,
+                    ut.sp_earned,
+                    ut.time_taken_seconds,
+                    ut.started_at,
+                    ut.completed_at,
+                    t.name AS test_name,
+                    t.description AS test_description,
+                    t.time_minutes,
+                    t.total_questions
+                 FROM user_tests ut
+                 INNER JOIN tests t ON t.id = ut.test_id
+                 WHERE ut.id = $1
+                 LIMIT 1`,
+                [userTestId],
+            );
+
+            if (!attempts || attempts.length === 0) {
+                return null;
+            }
+
+            const attempt = attempts[0];
+
+            const questions = await this.dataSource.query(
+                `SELECT
+                    tq.order_index,
+                    qb.id AS question_id,
+                    qb.question_text,
+                    qb.difficulty,
+                    qb.subject,
+                    qb.topic,
+                    uta.selected_option_id,
+                    COALESCE(uta.is_correct, false) AS is_correct,
+                    CASE WHEN uta.selected_option_id IS NOT NULL THEN true ELSE false END AS is_attempted,
+                    COALESCE(
+                        json_agg(
+                            json_build_object(
+                                'id', o.id,
+                                'option_text', o.option_text,
+                                'order_index', o.order_index,
+                                'is_correct', o.is_correct
+                            )
+                            ORDER BY o.order_index
+                        ) FILTER (WHERE o.id IS NOT NULL),
+                        '[]'
+                    ) AS options
+                 FROM test_questions tq
+                 INNER JOIN user_tests ut ON ut.test_id = tq.test_id
+                 INNER JOIN question_bank qb ON qb.id = tq.question_id
+                 LEFT JOIN user_test_answers uta 
+                     ON uta.user_test_id = ut.id AND uta.question_id = qb.id
+                 LEFT JOIN question_bank_options o 
+                     ON o.question_id = qb.id
+                 WHERE ut.id = $1
+                 GROUP BY tq.order_index, qb.id, qb.question_text, qb.difficulty, qb.subject, qb.topic, uta.selected_option_id, uta.is_correct
+                 ORDER BY tq.order_index ASC`,
+                [userTestId],
+            );
+
+            return {
+                attempt,
+                questions,
+            };
+        } catch (error) {
+            console.error('SourceError:- getAttemptReview', error, 'userTestId', userTestId);
+            return null;
+        }
+    }
 }
+

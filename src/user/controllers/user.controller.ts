@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, BadRequestException } from "@nestjs/common";
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, BadRequestException, Res } from "@nestjs/common";
 import { UserService, S3Service } from "../services";
 
 @Controller('user')
@@ -124,6 +124,55 @@ export class UserController {
         return {
             success: true,
             ...result,
+        };
+    }
+
+    @Get('/download')
+    async downloadFile(
+        @Query('key') keyParam: string,
+        @Query('url') urlParam: string,
+        @Query('name') nameParam: string,
+        @Res() res: any,
+    ) {
+        let key = keyParam;
+        if (!key && urlParam) {
+            try {
+                const parsed = new URL(urlParam);
+                key = parsed.pathname.startsWith('/') ? parsed.pathname.substring(1) : parsed.pathname;
+            } catch (_) {
+                key = urlParam;
+            }
+        }
+
+        if (!key) {
+            throw new BadRequestException('key or url is required');
+        }
+
+        const signedUrl = this.s3Service.getPresignedDownloadUrl(key, 86400, nameParam);
+        return res.redirect(signedUrl);
+    }
+
+    @Get('/presigned-download-url')
+    async getPresignedDownloadUrl(
+        @Query('key') keyParam: string,
+        @Query('url') urlParam: string,
+        @Query('name') nameParam: string,
+    ) {
+        let key = keyParam;
+        if (!key && urlParam) {
+            try {
+                const parsed = new URL(urlParam);
+                key = parsed.pathname.startsWith('/') ? parsed.pathname.substring(1) : parsed.pathname;
+            } catch (_) {
+                key = urlParam;
+            }
+        }
+        if (!key) throw new BadRequestException('key or url is required');
+        const signedUrl = this.s3Service.getPresignedDownloadUrl(key, 86400, nameParam);
+        return {
+            success: true,
+            downloadUrl: signedUrl,
+            key,
         };
     }
 

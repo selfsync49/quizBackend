@@ -66,6 +66,21 @@ export class DashboardController {
         return await this.dashboardService.getSubjectTests(subjectId);
     }
 
+    @Get('tests/user-completed/:userId')
+    async getUserCompletedTests(@Param('userId') userId: string) {
+        return await this.dashboardService.getUserCompletedTests(userId);
+    }
+
+    @Get('tests/results/:testId/user/:userId')
+    async getUserTestAttempts(@Param('testId') testId: string, @Param('userId') userId: string) {
+        return await this.dashboardService.getUserTestAttempts(testId, userId);
+    }
+
+    @Get('tests/attempt-review/:userTestId')
+    async getAttemptReview(@Param('userTestId') userTestId: string) {
+        return await this.dashboardService.getAttemptReview(userTestId);
+    }
+
     // @Get('test-questions/:testId')
     // async getTestQuestions(@Param('testId') TestId: string) {
     //     return await this.dashboardService.getTestQuestions(TestId);
